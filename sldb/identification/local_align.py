@@ -27,7 +27,7 @@ class LocalAlignmentWorker(concurrent.Worker):
         try:
             v = VDJSequence(
                 seq.seq_id, seq.original_sequence, self._v_germlines,
-                self._j_germlines, quality=seq.original_quality ,
+                self._j_germlines, quality=seq.original_quality,
                 locally_align=(args['avg_mut'], args['avg_len']),
                 analyze=True
             )

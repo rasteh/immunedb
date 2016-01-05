@@ -15,6 +15,7 @@ from sldb.aggregation.sample_stats import run_sample_stats
 DB_NAME = 'test_db'
 CONFIG_PATH = '{}.json'.format(DB_NAME)
 
+
 class TestPipeline(unittest.TestCase):
     def setUp(self):
         self.session = config.init_db(CONFIG_PATH)
@@ -181,7 +182,6 @@ class TestPipeline(unittest.TestCase):
             return getattr(obj, key)
         return '-'.join([str(getattr(obj, k)) for k in key])
 
-
     def _generate(self, path, query, key, fields):
         print 'Generating regression for {}'.format(path)
         data = {}
@@ -208,6 +208,7 @@ class TestPipeline(unittest.TestCase):
                     self._err(path, key, self._get_key(record, key), fld,
                               value, getattr(record, fld))
                 )
+
 
 class NamespaceMimic(object):
     def __init__(self, **kwargs):

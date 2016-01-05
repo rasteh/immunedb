@@ -51,7 +51,7 @@ def add_as_sequence(session, vdj, sample, paired):
             j_length=vdj.j_length,
 
             removed_prefix=vdj.removed_prefix,
-            removed_prefix_qual= vdj.removed_prefix_qual,
+            removed_prefix_qual=vdj.removed_prefix_qual,
             v_mutation_fraction=vdj.mutation_fraction,
 
             pre_cdr3_length=vdj.pre_cdr3_length,
