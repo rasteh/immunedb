@@ -19,10 +19,6 @@ def gap_positions(seq):
     return gaps
 
 
-def gaps_before(gaps, pos):
-    return sum((e[1] for e in gaps if e[0] < pos))
-
-
 class VDJSequence(object):
     MISMATCH_THRESHOLD = 3
     INDEL_WINDOW = 30
@@ -72,7 +68,7 @@ class VDJSequence(object):
             raise AlignmentException('Invalid characters in sequence.')
 
         if locally_align:
-            self._locally_align(*locally_align)
+            self._locally_align()
         else:
             self._find_j()
             self._find_v()
@@ -123,115 +119,15 @@ class VDJSequence(object):
     def functional(self):
         return self.in_frame and not self.stop
 
-    def _locally_align(self, avg_mut, avg_len, insert_penalty=-50,
-                       delete_penalty=-50, extend_penalty=-10,
-                       mismatch_penalty=-20, match_score=40, rev_comp=False):
+    def _locally_align(self, avg_mut, avg_len, rev_comp=False):
         if rev_comp:
             self.sequence = str(Seq(self.sequence).reverse_complement())
         max_align = None
         for name, germr in self.v_germlines.all_ties(
                 avg_len, avg_mut).iteritems():
             germ = germr.replace('-', '')
-            try:
-                g, s, germ_omit, seq_omit, score = dnautils.align(
-                    germ, self.sequence, insert_penalty, delete_penalty,
-                    extend_penalty, mismatch_penalty, match_score)
-                s = ''.join(reversed(s))
-                g = ''.join(reversed(g))
-            except Exception as e:
-                continue
             if max_align is None or score >= max_align['score']:
-                v_length = len(s)
-                q = None
-                if self.quality is not None:
-                    q = self.quality[seq_omit:]
-                if len(germ) > len(g):
-                    g = germ[:germ_omit].lower() + g
-                    g += germ[len(g) - g.count('-'):]
-
-                if len(self.sequence) > len(s):
-                    s += self.sequence[seq_omit + len(s) - s.count('-'):]
-
-                max_align = {
-                    'original_germ': germr,
-                    'seq': s,
-                    'qual': q,
-                    'germ': g,
-                    'score': score,
-                    'v_length': v_length,
-                    'vs': (name, g)
-                }
-
-        if max_align is None:
-            if rev_comp:
-                self.sequence = str(Seq(self.sequence).reverse_complement())
-                raise AlignmentException('Could not locally align sequence.')
-            else:
-                return self._locally_align(
-                    avg_mut, avg_len,
-                    insert_penalty=insert_penalty,
-                    delete_penalty=delete_penalty,
-                    extend_penalty=extend_penalty,
-                    mismatch_penalty=mismatch_penalty,
-                    match_score=match_score,
-                    rev_comp=True)
-
-        self._v = max_align['vs'][0]
-        self.germline = max_align['vs'][1]
-        self.sequence = max_align['seq']
-
-        self.germline = self.germline.replace('-', '.')
-        self.sequence = self.sequence.replace('-', '.')
-
-        germ_gaps = gap_positions(self.germline)
-        imgt_gaps = [
-            i + gaps_before(germ_gaps, i)
-            for i, c in enumerate(max_align['original_germ']) if c == '-'
-        ]
-
-        for gap in imgt_gaps:
-            self.germline = self.germline[:gap] + '-' + self.germline[gap:]
-            self.sequence = self.sequence[:gap] + '-' + self.sequence[gap:]
-
-        self.insertions = gap_positions(self.germline)
-        self.deletions = gap_positions(self.sequence)
-        self.germline = self.germline.replace('.', '-')
-        self.sequence = self.sequence.replace('.', '-')
-
-        if self.quality is not None:
-            self.quality = max_align['qual']
-            for i, c in enumerate(self.sequence):
-                if c == '-':
-                    self.quality = self.quality[:i] + ' ' + self.quality[i:]
-
-        offset = re.search('[ATCGN]', self.germline)
-        if offset is None:
-            raise AlignmentException('Entire germline gapped.')
-
-        offset = offset.start()
-        self.germline = self.germline[offset:]
-        self.sequence = self.sequence[offset:]
-        if self.quality is not None:
-            self.quality = self.quality[offset:]
-
-        self.v_length = max_align['v_length']
-
-        # TODO: Add padding for partials
-        self._pad_len = 0
-        if self.v_length is None:
-            raise AlignmentException('Germline was too small.')
-
-        self._v = self.v_germlines.get_ties(self.v_gene, avg_len, avg_mut)
-        common_v = get_common_seq(
-            [self.v_germlines[v].sequence for v in self._v]
-        )[:CDR3_OFFSET].replace('-', '')
-
-        for i, c in enumerate(self.germline):
-            if c == '-':
-                common_v = common_v[:i] + '-' + common_v[i:]
-
-        self.germline = common_v
-        self._find_j(self.cdr3_start)
+                pass
         self.calculate_stats()
 
     def _find_j(self, offset=0):
