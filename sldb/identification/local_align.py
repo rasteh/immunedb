@@ -28,29 +28,34 @@ def gap_positions(seq):
 
 
 class LocalAlignmentWorker(concurrent.Worker):
-    def __init__(self, align_path, max_deletions, max_insertions):
+    def __init__(self, v_germlines, j_germlines, align_path, max_deletions,
+                 max_insertions):
+        self._v_germlines = v_germlines
+        self._j_germlines = j_germlines
         self._align_path = align_path
         self._max_deletions = max_deletions
         self._max_insertions = max_insertions
 
-    def do_task(self, args):
-        # Find best aligned first allele
-        first_alleles = {
-            name: v.sequence for name, v in args['vs'].iteritems()
+        self._first_alleles = {
+            name: v.sequence for name, v in self._v_germlines.iteritems()
             if int(name.split('*', 1)[1]) == 1
         }
+
+    def do_task(self, args):
+        # Find best aligned first allele
         v_align = self._align_seq_to_germs(args['seq_id'], args['seq'],
-                                           first_alleles)
+                                           self._first_alleles)
+
         if v_align is None:
-            print args['seq_id'], 'Bad V'
             return
 
         v_name = v_align['germ_name'].split('*', 1)[0]
         v_ties = {
-            '|'.join(name): v for name, v in args['vs'].all_ties(
+            '|'.join(name): v for name, v in self._v_germlines.all_ties(
                 args['avg_len'], args['avg_mut'], cutoff=False
             ).iteritems() if v_name in '|'.join(name)
         }
+
         v_align = self._align_seq_to_germs(
             args['seq_id'], v_align['seq'].replace('-', ''), v_ties
         )
@@ -81,21 +86,12 @@ class LocalAlignmentWorker(concurrent.Worker):
                     cdr3_start = i
                     break
         v_align['germ'] = v_align['germ'].replace('^', '-')
-        print v_ties[v_align['germ_name']]
-        print v_align['germ_name']
-        print v_align['germ']
-        print (' ' * cdr3_start) + '|'
-        print v_align['seq']
 
         j_align = self._align_seq_to_germs(
-            args['seq_id'], v_align['seq'][cdr3_start:], args['js']
+            args['seq_id'], v_align['seq'][cdr3_start:], self._j_germlines,
         )
-        print j_align['germ_name']
-        print j_align['germ']
-        print j_align['seq']
 
         if j_align is None:
-            print args['seq_id'], 'Bad J'
             return
 
         final_germ = ''.join((
@@ -108,26 +104,12 @@ class LocalAlignmentWorker(concurrent.Worker):
         ))
         final_germ = final_germ.rstrip('-')
         final_seq = final_seq[:len(final_germ)]
-        cdr3_end = len(final_seq) - args['js'].upstream_of_cdr3
+        cdr3_end = len(final_seq) - self._j_germlines.upstream_of_cdr3
         final_germ = ''.join((
             final_germ[:cdr3_start],
             '-' * (cdr3_end - cdr3_start),
             final_germ[cdr3_end:]
         ))
-
-        print 'final!'
-        print final_germ
-        print (' ' * cdr3_start) + '|'
-        print (' ' * cdr3_end) + '|'
-        print final_seq
-
-        '''
-        final_seq = ''.join((
-            v_align['germ'][:cdr3_start],
-            j_align['germ']
-        ))
-        print args['seq_id'], 'good', v_align['germ_name']
-        '''
 
     def _align_seq_to_germs(self, seq_id, seq, germs):
         stdin = []
@@ -184,7 +166,6 @@ def run_fix_sequences(session, args):
         NoResult.seq_id == 'M03592:1:000000000-ADANF:1:2119:10104:6789'
     )
     total = indels.count()
-    fixed = 0
     print 'Creating task queue for {} indels'.format(total)
     for i, seq in enumerate(indels):
         if seq.sample_id not in mutation_cache:
@@ -195,19 +176,19 @@ def run_fix_sequences(session, args):
         avg_mut, avg_len = mutation_cache[seq.sample_id]
         session.expunge(seq)
         tasks.add_task({
+            'num': i,
             'sample_id': seq.sample_id,
             'seq_id': seq.seq_id,
             'seq': seq.sequence,
-            'vs': v_germlines,
-            'js': j_germlines,
             'avg_mut': avg_mut,
             'avg_len': avg_len
         })
 
-
     workers = min(args.nproc, tasks.num_tasks)
     for i in range(0, workers):
         tasks.add_worker(LocalAlignmentWorker(
+            v_germlines,
+            j_germlines,
             args.align_path,
             args.max_deletions,
             args.max_insertions)
