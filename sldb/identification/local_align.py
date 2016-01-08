@@ -192,6 +192,7 @@ def run_fix_sequences(session, args):
         session.expunge(seq)
         tasks.add_task({
             'num': i,
+            'type': type(seq).__name__,
             'sample_id': seq.sample_id,
             'seq_id': seq.seq_id,
             'seq': seq.sequence.replace('-', '').strip('N'),
