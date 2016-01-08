@@ -1,3 +1,4 @@
+import itertools
 import multiprocessing as mp
 import re
 import subprocess
@@ -46,7 +47,9 @@ class LocalAlignmentWorker(concurrent.Worker):
         v_align = self._align_seq_to_germs(args['seq_id'], args['seq'],
                                            self._first_alleles)
 
-        if v_align is None:
+        if v_align is None or not self._alignment_passes(v_align['germ'],
+                                                         v_align['seq']):
+            print 'Bad V'
             return
 
         v_name = v_align['germ_name'].split('*', 1)[0]
@@ -92,6 +95,7 @@ class LocalAlignmentWorker(concurrent.Worker):
         )
 
         if j_align is None:
+            print 'Bad J'
             return
 
         final_germ = ''.join((
@@ -118,8 +122,8 @@ class LocalAlignmentWorker(concurrent.Worker):
             stdin.append('>{}\n{}\n'.format(seq_id, seq))
 
         cmd = (
-            '{} --match 4 --mismatch -3 --gapopen -5 --gapextend -2 '
-            '--wildcard N 4 --printfasta --printscores --freestartgap '
+            '{} --match 2 --mismatch -2 --gapopen -5 --gapextend -2 '
+            '--wildcard N 2 --printfasta --printscores --freestartgap '
             '--freeendgap --file -'
         ).format(self._align_path)
         proc = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE,
@@ -151,6 +155,13 @@ class LocalAlignmentWorker(concurrent.Worker):
 
         return best
 
+    def _alignment_passes(self, germ, seq):
+        if len(gap_positions(seq.strip('-'))) > self._max_deletions:
+            return False
+        if len(gap_positions(germ.strip('-'))) > self._max_insertions:
+            return False
+        return True
+
 
 def run_fix_sequences(session, args):
     v_germlines = VGermlines(args.v_germlines)
@@ -161,13 +172,17 @@ def run_fix_sequences(session, args):
 
     '''
     indels = session.query(NoResult).limit(1000)
-    '''
     indels = session.query(NoResult).filter(
         NoResult.seq_id == 'M03592:1:000000000-ADANF:1:2119:10104:6789'
     )
+    '''
+    indels = session.query(Sequence).filter(
+        Sequence.probable_indel_or_misalign == 1
+    ).limit(100)
+    noresults = session.query(NoResult).limit(100)
     total = indels.count()
     print 'Creating task queue for {} indels'.format(total)
-    for i, seq in enumerate(indels):
+    for i, seq in enumerate(itertools.chain(indels, noresults)):
         if seq.sample_id not in mutation_cache:
             mutation_cache[seq.sample_id] = session.query(
                 Sample.v_ties_mutations,
@@ -179,7 +194,7 @@ def run_fix_sequences(session, args):
             'num': i,
             'sample_id': seq.sample_id,
             'seq_id': seq.seq_id,
-            'seq': seq.sequence,
+            'seq': seq.sequence.replace('-', '').strip('N'),
             'avg_mut': avg_mut,
             'avg_len': avg_len
         })
