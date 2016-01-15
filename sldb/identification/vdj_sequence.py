@@ -28,14 +28,13 @@ class VDJSequence(object):
         'ids', 'sequence', 'v_germlines', 'j_germlines', '_force_vs',
         '_force_js', 'quality', '_j', '_j_start', 'j_anchor_pos', 'j_length',
         'j_match', '_v', 'v_length', 'v_match', 'mutation_fraction',
-        'germline', 'insertions', 'deletions', 'removed_prefix',
-        'removed_prefix_qual', '_cdr3_len', '_pad_len', 'pre_cdr3_length',
-        'pre_cdr3_match', 'post_cdr3_length', 'post_cdr3_match'
+        'germline', 'removed_prefix', 'removed_prefix_qual', '_cdr3_len',
+        '_pad_len', 'pre_cdr3_length', 'pre_cdr3_match', 'post_cdr3_length',
+        'post_cdr3_match'
     ]
 
     def __init__(self, ids, seq, v_germlines, j_germlines,
-                 force_vs=None, force_js=None, quality=None,
-                 locally_align=False, analyze=False):
+                 force_vs=None, force_js=None, quality=None, analyze=False):
         self.ids = [ids] if type(ids) == str else ids
         self.sequence = seq.upper()
         self.v_germlines = v_germlines
@@ -55,23 +54,17 @@ class VDJSequence(object):
         self.mutation_fraction = None
         self.germline = None
 
-        self.insertions = None
-        self.deletions = None
-
         self.removed_prefix = ''
         self.removed_prefix_qual = ''
         if analyze:
-            self.analyze(locally_align)
+            self.analyze()
 
-    def analyze(self, locally_align=False):
+    def analyze(self, ):
         if not all(map(lambda c: c in 'ATCGN', self.sequence)):
             raise AlignmentException('Invalid characters in sequence.')
 
-        if locally_align:
-            self._locally_align()
-        else:
-            self._find_j()
-            self._find_v()
+        self._find_j()
+        self._find_v()
 
     @property
     def j_gene(self):
@@ -87,9 +80,7 @@ class VDJSequence(object):
 
     @property
     def cdr3_start(self):
-        if self.insertions is None:
-            return CDR3_OFFSET
-        return CDR3_OFFSET + sum((e[1] for e in self.insertions))
+        return CDR3_OFFSET
 
     @property
     def num_gaps(self):
@@ -118,17 +109,6 @@ class VDJSequence(object):
     @property
     def functional(self):
         return self.in_frame and not self.stop
-
-    def _locally_align(self, avg_mut, avg_len, rev_comp=False):
-        if rev_comp:
-            self.sequence = str(Seq(self.sequence).reverse_complement())
-        max_align = None
-        for name, germr in self.v_germlines.all_ties(
-                avg_len, avg_mut).iteritems():
-            germ = germr.replace('-', '')
-            if max_align is None or score >= max_align['score']:
-                pass
-        self.calculate_stats()
 
     def _find_j(self, offset=0):
         '''Finds the location and type of J gene'''

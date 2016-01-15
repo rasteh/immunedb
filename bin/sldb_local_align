@@ -19,6 +19,9 @@ if __name__ == '__main__':
                         'aligned. Sequence cannot contain any gaps.')
     parser.add_argument('upstream_of_cdr3', type=int, help='The number of '
                         ' nucleotides in the J germlines upstream of the CDR3')
+    parser.add_argument('--min-similarity', type=int, default=60,
+                        help='Minimum percent similarity to germline required '
+                        'for valid sequences. (Default: 60)')
     parser.add_argument('--max-deletions', type=int, default=3,
                         help='Maximum number of deletion blocks allowed.  '
                         '(Default: 3)')
