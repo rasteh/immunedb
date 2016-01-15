@@ -4,8 +4,8 @@ import unittest
 
 from sldb.aggregation.clone_stats import run_clone_stats
 import sldb.common.config as config
-from sldb.common.models import (Clone, CloneStats, Sequence, SampleStats,
-                                SequenceCollapse)
+from sldb.common.models import (Clone, CloneStats, DuplicateSequence, NoResult,
+                                Sequence, SampleStats, SequenceCollapse)
 from sldb.identification.identify import run_identify
 from sldb.identification.local_align import run_fix_sequences
 from sldb.aggregation.clones import run_clones
@@ -49,7 +49,6 @@ class TestPipeline(unittest.TestCase):
             )
         )
         self.session.commit()
-        self.assertEqual(self.session.query(Sequence).count(), 1092)
 
         self._regression(
             'tests/data/post_identification.json',
@@ -72,14 +71,40 @@ class TestPipeline(unittest.TestCase):
             NamespaceMimic(
                 v_germlines='tests/imgt_human_v.fasta',
                 j_germlines='tests/imgt_human_j.fasta',
+                align_path=os.getenv('LL_PATH'),
+                min_similarity=60,
                 upstream_of_cdr3=31,
-                anchor_len=18,
-                min_anchor_len=12,
                 max_deletions=3,
                 max_insertions=3
             )
         )
         self.session.commit()
+
+        self._regression(
+            'tests/data/post_local_align_seqs.json',
+            self.session.query(Sequence),
+            'seq_id',
+            ('bucket_hash', 'ai', 'seq_id', 'v_gene', 'j_gene', 'num_gaps',
+             'pad_length', 'v_match', 'v_length', 'j_match', 'j_length',
+             'pre_cdr3_length', 'pre_cdr3_match', 'post_cdr3_length',
+             'post_cdr3_match', 'copy_number', 'cdr3_num_nts',
+             'cdr3_num_nts', 'cdr3_nt', 'cdr3_aa', 'sequence', 'quality',
+             'germline', 'insertions', 'deletions')
+        )
+
+        self._regression(
+            'tests/data/post_local_align_nores.json',
+            self.session.query(NoResult),
+            'seq_id',
+            ('sequence', 'quality')
+        )
+
+        self._regression(
+            'tests/data/post_local_align_dups.json',
+            self.session.query(DuplicateSequence),
+            'seq_id',
+            ('duplicate_seq_ai',)
+        )
 
         self.assertEqual(
             self.session.query(Sequence).filter(

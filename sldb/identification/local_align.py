@@ -12,7 +12,7 @@ from sldb.identification.j_genes import JGermlines
 from sldb.identification.v_genes import VGermlines
 from sldb.identification.vdj_sequence import VDJSequence
 from sldb.common.models import (CDR3_OFFSET, DuplicateSequence, NoResult,
-                                Sample, Sequence)
+                                Sample, Sequence, serialize_gaps)
 import sldb.util.lookups as lookups
 import sldb.util.concurrent as concurrent
 
@@ -156,6 +156,10 @@ class LocalAlignmentWorker(concurrent.Worker):
         post_cdr3_germ = final_germ[-self.j_germlines.upstream_of_cdr3:]
         post_cdr3_seq = final_seq[-self.j_germlines.upstream_of_cdr3:]
         post_cdr3_length = len(post_cdr3_seq)
+        j_match = post_cdr3_length - dnautils.hamming(
+            post_cdr3_germ,
+            post_cdr3_seq
+        )
 
         record.update({
             'v_gene': v_align['germ_name'],
@@ -165,11 +169,10 @@ class LocalAlignmentWorker(concurrent.Worker):
             'cdr3_nt': final_seq[cdr3_start:cdr3_end],
             'cdr3_aa': lookups.aas_from_nts(final_seq[cdr3_start:cdr3_end]),
 
-            'pre_cdr3_match': post_cdr3_length - dnautils.hamming(
-                post_cdr3_germ,
-                post_cdr3_seq,
-            ),
-            'pre_cdr3_length': post_cdr3_length,
+            'post_cdr3_match': j_match,
+            'post_cdr3_length': post_cdr3_length,
+            'j_match': j_match,
+            'j_length': post_cdr3_length,
 
             'sequence': final_seq,
             # TODO: Quality
@@ -243,7 +246,7 @@ class LocalAlignmentWorker(concurrent.Worker):
         return True
 
 
-def process_completes(complete_queue, num_workers):
+def process_completes(session, complete_queue, num_workers):
     stops = 0
     while True:
         task = complete_queue.get()
@@ -253,15 +256,40 @@ def process_completes(complete_queue, num_workers):
                 break
             continue
 
-        print 'Adding Sequence for {}'.format(task['record']['seq_id'])
-        try:
-            Sequence(**task['record'])
-            if task['type'] == 'NoResult':
-                print '\tMoving {} from NoResult -> DuplicateSequence'.format(
-                    task['duplicates']
-                )
-        except ValueError as v:
-            pass
+        if task['type'] == 'Sequence':
+            seq = session.query(Sequence).filter(
+                Sequence.sample_id == task['record']['sample_id'],
+                Sequence.seq_id == task['record']['seq_id']
+            ).one()
+            for key, value in task['record'].iteritems():
+                setattr(seq, key, value)
+        else:
+            try:
+                new_seq = Sequence(**task['record'])
+                session.add(new_seq)
+                # Delete primary NoResult
+                session.query(NoResult).filter(
+                    NoResult.sample_id == task['record']['sample_id'],
+                    NoResult.seq_id == task['record']['seq_id']
+                ).delete()
+
+                # Move duplicates to DuplicateSequence
+                if len(task['duplicates']) > 0:
+                    session.flush()
+                    nores = session.query(NoResult).filter(
+                        NoResult.sample_id == task['record']['sample_id'],
+                        NoResult.seq_id.in_(task['duplicates'])
+                    )
+                    for old_nores in nores:
+                        session.add(DuplicateSequence(
+                            seq_id=old_nores.seq_id,
+                            sample_id=old_nores.sample_id,
+                            duplicate_seq=new_seq))
+                        session.delete(old_nores)
+            except ValueError as e:
+                pass
+
+        session.commit()
 
 def run_fix_sequences(session, args):
     v_germlines = VGermlines(args.v_germlines)
@@ -278,7 +306,9 @@ def run_fix_sequences(session, args):
         noresults = session.query(NoResult).filter(
             NoResult.sample_id == sample_id
         )
-        print 'Creating task queue for sample {}'.format(sample_id)
+        print ('Creating task queue for sample {}; '
+               '{} indels, {} noresults').format(sample_id, indels.count(),
+                                                 noresults.count())
 
         # Get information for the V-ties
         avg_mut, avg_len = session.query(
@@ -294,11 +324,12 @@ def run_fix_sequences(session, args):
                 uniques[seq.sequence] = {
                 'type': type(seq).__name__,
                 'sample_id': seq.sample_id,
-                'seq_ids': [seq.seq_id],
+                'seq_ids': [],
                 'seq': seq.sequence.replace('-', '').strip('N'),
                 'avg_mut': avg_mut,
                 'avg_len': avg_len
             }
+            uniques[seq.sequence]['seq_ids'].append(seq.seq_id)
 
         tasks = concurrent.TaskQueue()
         tasks.add_tasks(uniques.values())
@@ -319,4 +350,4 @@ def run_fix_sequences(session, args):
 
         tasks.start(block=False)
 
-        process_completes(complete_queue, workers)
+        process_completes(session, complete_queue, workers)

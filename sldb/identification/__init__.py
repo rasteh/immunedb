@@ -36,8 +36,6 @@ def add_as_sequence(session, vdj, sample, paired):
             partial=vdj.partial,
 
             probable_indel_or_misalign=vdj.has_possible_indel,
-            deletions=vdj.deletions,
-            insertions=vdj.insertions,
 
             v_gene=funcs.format_ties(vdj.v_gene, 'IGHV'),
             j_gene=funcs.format_ties(vdj.j_gene, 'IGHJ'),
