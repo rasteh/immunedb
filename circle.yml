@@ -4,8 +4,8 @@ dependencies:
         - pip install --upgrade numpy
         - sudo apt-get install libatlas-base-dev gfortran
         - pip install scipy
-        - git clone --recursive https://github.com/noporpoise/seq-align
-        - cd seq-align
+        - git clone --recursive https://github.com/noporpoise/seq-align ~/seq-align
+        - cd ~/seq-align
         - make
 
 test:
