@@ -10,8 +10,7 @@ if __name__ == '__main__':
                                         'that could not be properly aligned '
                                         'with the anchoring method.',
                                         multiproc=True)
-    parser.add_argument('align_path', help='Path to local alignment '
-                        'binary')
+    parser.add_argument('align_path', help='Path to needleman_wunsch binary')
     parser.add_argument('v_germlines', help='FASTA file with IMGT gapped '
                         'V-gene germlines')
     parser.add_argument('j_germlines', help='FASTA file with J-gene '
