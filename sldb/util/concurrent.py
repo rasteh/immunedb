@@ -28,7 +28,6 @@ class TaskQueue(object):
         for task in tasks:
             self.add_task(task)
 
-
     def add_worker(self, worker):
         self._workers.append(
             mp.Process(

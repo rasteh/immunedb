@@ -18,8 +18,10 @@ import sldb.util.concurrent as concurrent
 
 GAP_PLACEHOLDER = '^'
 
+
 def gaps_before(gaps, pos):
     return sum((e[1] for e in gaps if e[0] < pos))
+
 
 def gap_positions(seq):
     gaps = []
@@ -55,7 +57,7 @@ class LocalAlignmentWorker(concurrent.Worker):
         v_align = self.align_seq_to_germs(args['seq'], self.first_alleles)
 
         if v_align is None or not self.alignment_passes(v_align['germ'],
-                                                         v_align['seq']):
+                                                        v_align['seq']):
             return
 
         v_name = v_align['germ_name'].split('*', 1)[0]
@@ -194,7 +196,6 @@ class LocalAlignmentWorker(concurrent.Worker):
             'record': record
         })
 
-
     def cleanup(self):
         self.complete_queue.put(None)
 
@@ -291,6 +292,7 @@ def process_completes(session, complete_queue, num_workers):
 
         session.commit()
 
+
 def run_fix_sequences(session, args):
     v_germlines = VGermlines(args.v_germlines)
     j_germlines = JGermlines(args.j_germlines, args.upstream_of_cdr3, 0, 0)
@@ -323,14 +325,14 @@ def run_fix_sequences(session, args):
             session.expunge(seq)
             if seq.sequence not in uniques:
                 uniques[seq.sequence] = {
-                'type': type(seq).__name__,
-                'sample_id': seq.sample_id,
-                'subject_id': subject_id,
-                'seq_ids': [],
-                'seq': seq.sequence.replace('-', '').strip('N'),
-                'avg_mut': avg_mut,
-                'avg_len': avg_len
-            }
+                    'type': type(seq).__name__,
+                    'sample_id': seq.sample_id,
+                    'subject_id': subject_id,
+                    'seq_ids': [],
+                    'seq': seq.sequence.replace('-', '').strip('N'),
+                    'avg_mut': avg_mut,
+                    'avg_len': avg_len
+                }
             uniques[seq.sequence]['seq_ids'].append(seq.seq_id)
 
         tasks = concurrent.TaskQueue()
