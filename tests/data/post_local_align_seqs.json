@@ -1951,7 +1951,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1101:13153:9771": {
         "ai": 1098,
-        "bucket_hash": "44370fcd619c84960b222381a2d1de9b5655f16a",
+        "bucket_hash": "4f6eb769daca620b47a6bd8a8de445563c9f982a",
         "cdr3_aa": "FW",
         "cdr3_nt": "TTCTGG",
         "cdr3_num_nts": 6,
@@ -5852,7 +5852,7 @@
         "j_length": 31,
         "j_match": 31,
         "num_gaps": 24,
-        "pad_length": 0,
+        "pad_length": 1,
         "post_cdr3_length": 31,
         "post_cdr3_match": 31,
         "pre_cdr3_length": 286,
@@ -20119,7 +20119,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1102:24623:17250": {
         "ai": 1096,
-        "bucket_hash": "55e55f7512c4312408deca49b1ea34f12319e558",
+        "bucket_hash": "000ca5b2b6d274640e22d7744a43dae46e9157eb",
         "cdr3_aa": "CARNGAYVLDSW",
         "cdr3_nt": "TGTGCGAGAAATGGGGCGTACGTGCTTGACTCTTGG",
         "cdr3_num_nts": 36,
@@ -20131,7 +20131,7 @@
         "j_length": 31,
         "j_match": 30,
         "num_gaps": 24,
-        "pad_length": 0,
+        "pad_length": 222,
         "post_cdr3_length": 31,
         "post_cdr3_match": 30,
         "pre_cdr3_length": 285,
@@ -22615,7 +22615,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1102:9798:12312": {
         "ai": 1097,
-        "bucket_hash": "daeb71b8ed94c441f81baf0194825ef2db963da3",
+        "bucket_hash": "a71ce7d5dee2272c5fc977e7510bf6f6328b594e",
         "cdr3_aa": "CARDSLMDV",
         "cdr3_nt": "TGTGCGAGAGACTCCCTTATGGACGTCTG",
         "cdr3_num_nts": 29,
@@ -22627,7 +22627,7 @@
         "j_length": 31,
         "j_match": 31,
         "num_gaps": 24,
-        "pad_length": 0,
+        "pad_length": 222,
         "post_cdr3_length": 31,
         "post_cdr3_match": 31,
         "pre_cdr3_length": 285,
@@ -23759,7 +23759,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1103:22589:14459": {
         "ai": 1104,
-        "bucket_hash": "b66c6b4c11a2c59be6b1250d1a58be2c594286b7",
+        "bucket_hash": "8f449d54a493029ab3c079422bcaa149a7842060",
         "cdr3_aa": "CARGSL**DQLPLSGPFDPW",
         "cdr3_nt": "TGTGCGAGAGGTTCCCTGTAGTAGGACCAGCTGCCTCTATCTGGCCCTTTTGACCCCTGG",
         "cdr3_num_nts": 60,
@@ -23771,7 +23771,7 @@
         "j_length": 31,
         "j_match": 31,
         "num_gaps": 24,
-        "pad_length": 0,
+        "pad_length": 222,
         "post_cdr3_length": 31,
         "post_cdr3_match": 31,
         "pre_cdr3_length": 285,
@@ -24279,7 +24279,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1103:27078:17975": {
         "ai": 1101,
-        "bucket_hash": "e32b758061b16d58e8411faa8da825c3a75d96d3",
+        "bucket_hash": "424d33fbbf491709144421cd1bd38fda2493beae",
         "cdr3_aa": "CARVISSYQLGGWLDPW",
         "cdr3_nt": "TGTGCGAGAGTCATCAGCAGTTACCAACTGGGCGGCTGGCTCGACCCCTGG",
         "cdr3_num_nts": 51,
@@ -24591,51 +24591,51 @@
     },
     "M03592:18:000000000-AHJWK:1:1103:7615:13908": {
         "ai": 1095,
-        "bucket_hash": "eb9b6be115230b9db20070e141d84fbd77727e2c",
+        "bucket_hash": "322d32df0f3c85848d921ca75905b2b47260ef40",
         "cdr3_aa": "CAREPIW*WLDHLYFDLX",
         "cdr3_nt": "TGTGCGAGAGAGCCCATATGGTAGTGGCTGGACCACTTATACTTCGATCTCCGN",
         "cdr3_num_nts": 54,
         "copy_number": 1,
         "deletions": [
             [
-                92,
-                1
+                124,
+                2
             ],
             [
-                105,
-                1
+                161,
+                2
             ]
         ],
-        "germline": "CAGGTGCAGCTGGTGGAGTCTGGGGGN---GGCGTGGTCCAGCCTGGGAGGTCCCTGAGACTCTCCTGTGCAGCNT---CTGGATTCACCTTC------------AGTAGCTATGNNATGCACTGGGTCCGCCAGGCNCCNGGCAAGGGGCTN-GAGTGG--------GTGGCAGTTATATCATATGAT------GGAAGNAATAAATACTANNCAGACTCCGTGAAG---GGCCGATTCNCCATCTCCAGAGACAATTCCAAGAACANGCTGTATCTNCAAATGANCAGCCTGAGAGCNGAGGNCACGGCTGTGTATTAC------------------------------------------------------GGCCGTGGCACCCTGGTCACTGTCTCCTCAG",
+        "germline": "CAGGTGCAGCTGGTGGAGTCTGGGGGN---GGCGTGGTCCAGCCTGGGAGGTCCCTG-AGACTCTCCTGTGCAGCNT----CTGGATTCACCTTC------------AGTAGCTATGNNATGCACTGGGTCCGCCAGGCNCCNGGCAAGGGG-CTNGAGTGGGTGGCAGTTATATCATATGAT------GGAAGNAATAAATACTANNCAGACTCCGTGAAG---GGCCGATTCNCCATCTCCAGAGACAATTCCAAGAACANGCTGTATCTNCAAATGANCAGCCTGAGAGCNGAGGNCACGGCTGTGTATTAC------------------------------------------------------GGCCGTGGCACCCTGGTCACTGTCTCCTCAG",
         "insertions": [
             [
-                76,
-                3
-            ],
-            [
-                153,
+                57,
                 1
             ],
             [
-                160,
-                8
+                77,
+                4
+            ],
+            [
+                152,
+                1
             ]
         ],
         "j_gene": "IGHJ2*01",
         "j_length": 31,
         "j_match": 30,
-        "num_gaps": 26,
-        "pad_length": 0,
+        "num_gaps": 28,
+        "pad_length": 46,
         "post_cdr3_length": 31,
         "post_cdr3_match": 30,
-        "pre_cdr3_length": 297,
-        "pre_cdr3_match": 252,
+        "pre_cdr3_length": 291,
+        "pre_cdr3_match": 244,
         "quality": null,
         "seq_id": "M03592:18:000000000-AHJWK:1:1103:7615:13908",
-        "sequence": "NNNNNNNNNNNNNNNNNNNNNNNNNNN---NNNNNNNNNNNNNNNNNNNNNNNNNNNTAACCATGGAGTTTGGGCTGAGCTGGGTTTTCCTC--------------GTTGCTCTTTTAAGAGGTGATTCATGGAGAAATAGAGAGACTGGGTGTGAGTGAACATGAGTGTGGCAGTTACATCATATGAT------GGAACTAATAAATACTACGCAGACTCCGTGAAG---GGCCGATTCACCATCTCCAGTGACAATTCCAAGAACACGCTGTATTTGCAAATGAACAGCCTGAGAGCTGAGCACACGGCTGTGTATTAATGTGCGAGAGAGCCCATATGGTAGTGGCTGGACCACTTATACTTCGATCTCCGNGGCCGTGGCACCCTGGTCACCGTCTCCTCAG",
+        "sequence": "NNNNNNNNNNNNNNNNNNNNNNNNNNN---NNNNNNNNNNNNNNNNNNNTAACCATGGAGTTTGGGCTGAGCTGGGTTTTCCTCGTTGCTCTTTT------------AAGAGGTGATTCATGGA--GAAATAGAGAGACTGGGTGTGAGTGAACATGAGTG--TGGCAGTTACATCATATGAT------GGAACTAATAAATACTACGCAGACTCCGTGAAG---GGCCGATTCACCATCTCCAGTGACAATTCCAAGAACACGCTGTATTTGCAAATGAACAGCCTGAGAGCTGAGCACACGGCTGTGTATTAATGTGCGAGAGAGCCCATATGGTAGTGGCTGGACCACTTATACTTCGATCTCCGNGGCCGTGGCACCCTGGTCACCGTCTCCTCAG",
         "v_gene": "IGHV3-30*01|IGHV3-30*03|IGHV3-30*04|IGHV3-30*05|IGHV3-30*06|IGHV3-30*07|IGHV3-30*09|IGHV3-30*10|IGHV3-30*11|IGHV3-30*12|IGHV3-30*13|IGHV3-30*14|IGHV3-30*15|IGHV3-30*16|IGHV3-30*17|IGHV3-30*19|IGHV3-30-3*02|IGHV3-33*05",
-        "v_length": 297,
-        "v_match": 252
+        "v_length": 291,
+        "v_match": 244
     },
     "M03592:18:000000000-AHJWK:1:1103:7945:18201": {
         "ai": 104,
@@ -24665,7 +24665,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1103:8273:23038": {
         "ai": 1094,
-        "bucket_hash": "edd63a0006659bc716b4f3c80506e0a622c910df",
+        "bucket_hash": "61023cb6ec03acf2e0a473e008324c415ff8fbf4",
         "cdr3_aa": "CARHPVYLDVS**P*RSGPRRVLPL*QL",
         "cdr3_nt": "TGTGCGAGACATCCGGTGTATCTTGATGTGTCTTAGTAGCCCTGAAGGTCGGGACCTCGGCGAGTCCTCCCGCTTTGACAACTGG",
         "cdr3_num_nts": 85,
@@ -24686,7 +24686,7 @@
         "j_length": 31,
         "j_match": 29,
         "num_gaps": 24,
-        "pad_length": 0,
+        "pad_length": 224,
         "post_cdr3_length": 31,
         "post_cdr3_match": 29,
         "pre_cdr3_length": 287,
@@ -25012,7 +25012,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1104:15888:16806": {
         "ai": 1107,
-        "bucket_hash": "b66c6b4c11a2c59be6b1250d1a58be2c594286b7",
+        "bucket_hash": "8f449d54a493029ab3c079422bcaa149a7842060",
         "cdr3_aa": "CARGSL**DQLPLSGPFDPW",
         "cdr3_nt": "TGTGCGAGAGGTTCCCTGTAGTAGGACCAGCTGCCTCTATCTGGCCCTTTTGACCCCTGG",
         "cdr3_num_nts": 60,
@@ -25024,7 +25024,7 @@
         "j_length": 31,
         "j_match": 31,
         "num_gaps": 24,
-        "pad_length": 0,
+        "pad_length": 222,
         "post_cdr3_length": 31,
         "post_cdr3_match": 31,
         "pre_cdr3_length": 285,
@@ -25064,7 +25064,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1104:16925:18044": {
         "ai": 1102,
-        "bucket_hash": "1dc100429cfd1cb580f28836425e24063201f2e0",
+        "bucket_hash": "3db5bbb5821014f1b52ab34cddeddc7745b24509",
         "cdr3_aa": "PLIVVVHFDHW",
         "cdr3_nt": "CCTTTGATAGTAGTGGTTCACTTTGACCACTGG",
         "cdr3_num_nts": 33,
@@ -25173,7 +25173,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1104:17727:18857": {
         "ai": 1103,
-        "bucket_hash": "44370fcd619c84960b222381a2d1de9b5655f16a",
+        "bucket_hash": "4f6eb769daca620b47a6bd8a8de445563c9f982a",
         "cdr3_aa": "FW",
         "cdr3_nt": "TTCTGG",
         "cdr3_num_nts": 6,
@@ -25781,7 +25781,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1104:23828:20233": {
         "ai": 1100,
-        "bucket_hash": "a2ecabf5aa2bc6b1fdeb202a155e9a4bf5f5cb09",
+        "bucket_hash": "3ebce0d883e33e7ae5915b708182ac060d1bbfd0",
         "cdr3_aa": "CARARPIARF*LVIIR*LL",
         "cdr3_nt": "TGTGCGAGAGCACGACCTATTGCGAGATTTTGACTGGTTATTATTCGTTGACTACTGG",
         "cdr3_num_nts": 58,
@@ -25793,7 +25793,7 @@
         "j_length": 31,
         "j_match": 31,
         "num_gaps": 27,
-        "pad_length": 0,
+        "pad_length": 219,
         "post_cdr3_length": 31,
         "post_cdr3_match": 31,
         "pre_cdr3_length": 282,
@@ -26873,7 +26873,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1105:18971:22447": {
         "ai": 1099,
-        "bucket_hash": "4abf2c2d2a83de6bd525fbfb8d31ec53e1c1a3de",
+        "bucket_hash": "14f707386748f3c1a94439992aa9f25dd4fc6aec",
         "cdr3_aa": "CASTKQSLSL*YRCLSPLMH*CGLL",
         "cdr3_nt": "TGTGCGAGCACAAAGCAGTCTCTATCTTTATGATATCGCTGTCTCTCACCACTGATGCACTGATGTGGACTACTGG",
         "cdr3_num_nts": 76,
@@ -26890,7 +26890,7 @@
         "j_length": 31,
         "j_match": 31,
         "num_gaps": 34,
-        "pad_length": 0,
+        "pad_length": 202,
         "post_cdr3_length": 31,
         "post_cdr3_match": 31,
         "pre_cdr3_length": 288,
@@ -27398,7 +27398,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1105:25201:7823": {
         "ai": 1105,
-        "bucket_hash": "ccf02b52d12f9a56ea3187893408fb03d7bc5bda",
+        "bucket_hash": "faf474c852039c87af4ba271959a6dfc7579466c",
         "cdr3_aa": "W",
         "cdr3_nt": "TGG",
         "cdr3_num_nts": 3,
@@ -28478,7 +28478,7 @@
     },
     "M03592:18:000000000-AHJWK:1:1106:24893:9211": {
         "ai": 1106,
-        "bucket_hash": "0e7e68f2c24f47b11dee4e1e3a53554f462fb61a",
+        "bucket_hash": "8fea85959dec7678cf8e5098cd2634fa94175d13",
         "cdr3_aa": "W",
         "cdr3_nt": "TGGG",
         "cdr3_num_nts": 4,

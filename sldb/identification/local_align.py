@@ -49,6 +49,7 @@ class LocalAlignmentWorker(concurrent.Worker):
         record = {
             'seq_id': args['seq_ids'][0],
             'sample_id': args['sample_id'],
+            'subject_id': args['subject_id'],
         }
         # Find best aligned first allele
         v_align = self.align_seq_to_germs(args['seq'], self.first_alleles)
@@ -118,8 +119,7 @@ class LocalAlignmentWorker(concurrent.Worker):
         v_align['seq'] = v_align['seq'].replace(GAP_PLACEHOLDER, '-')
         record.update({
             'num_gaps': v_align['seq'][:cdr3_start].count('-'),
-            # NOTE: This may not be entirely correct for partials
-            'pad_length': 0
+            'pad_length': v_align['seq_offset']
         })
 
         j_align = self.align_seq_to_germs(
@@ -175,12 +175,12 @@ class LocalAlignmentWorker(concurrent.Worker):
             'j_length': post_cdr3_length,
 
             'sequence': final_seq,
+            'partial': record['pad_length'] > 0,
             # TODO: Quality
             'germline': final_germ,
 
             # NOTE: These  may not be correct
             'paired': True,
-            'partial': final_seq.startswith('N'),
 
             'stop': stop,
             'in_frame': in_frame,
@@ -202,7 +202,7 @@ class LocalAlignmentWorker(concurrent.Worker):
         stdin = []
         for g_name, g_seq in germs.iteritems():
             stdin.append('>{}\n{}\n'.format(g_name, g_seq.replace('-', '')))
-            stdin.append('>query\n{}\n'.format(seq))
+            stdin.append('>query\n{}\n'.format(seq.lstrip('N')))
 
         cmd = (
             '{} --match 2 --mismatch -2 --gapopen -5 --gapextend -2 '
@@ -296,7 +296,8 @@ def run_fix_sequences(session, args):
     j_germlines = JGermlines(args.j_germlines, args.upstream_of_cdr3, 0, 0)
 
     mutation_cache = {}
-    for (sample_id,) in session.query(Sample.id).order_by(Sample.id):
+    for (sample_id, subject_id) in session.query(
+            Sample.id, Sample.subject_id).order_by(Sample.id):
         # Get all the indels that were identified (poorly)
         indels = session.query(Sequence).filter(
             Sequence.sample_id == sample_id,
@@ -324,6 +325,7 @@ def run_fix_sequences(session, args):
                 uniques[seq.sequence] = {
                 'type': type(seq).__name__,
                 'sample_id': seq.sample_id,
+                'subject_id': subject_id,
                 'seq_ids': [],
                 'seq': seq.sequence.replace('-', '').strip('N'),
                 'avg_mut': avg_mut,
