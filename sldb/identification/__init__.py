@@ -1,27 +1,17 @@
 import re
 
-from celery.exceptions import TimeoutError
 import dnautils
 
 from sldb.common.log import logger
-from sldb.common.models import CDR3_OFFSET, DuplicateSequence, NoResult, Sequence
+from sldb.common.celery_app import get_result
+from sldb.common.models import (CDR3_OFFSET, DuplicateSequence, NoResult,
+                                Sequence)
 import sldb.util.funcs as funcs
 import sldb.util.lookups as lookups
 
 
 class AlignmentException(Exception):
     pass
-
-def get_result(task, max_tries=None, timeout=.5):
-    tries = 0
-    while True:
-        if max_tries is not None and tries > max_tries:
-            raise TimeoutError()
-
-        try:
-            return task.get(timeout=timeout)
-        except TimeoutError:
-            tries += 1
 
 ALIGNMENT_COPY_FIELDS = (
     'probable_indel_or_misalign', 'num_gaps', 'pad_length', 'v_match',
@@ -40,8 +30,8 @@ class SequenceAlignment(object):
     __slots__ = [
         'ids', 'germline', 'sequence', 'quality', 'pending_result', 'j_genes',
         'j_length', 'j_match', 'j_anchor_pos', 'v_genes', 'v_length',
-        'v_match', '_pad_length', 'v_mutation_fraction', 'removed_prefix',
-        'removed_prefix_qual', 'cdr3_start', 'cdr3_nt',
+        'v_match', 'germline_offset', 'v_mutation_fraction', 'removed_prefix',
+        'removed_prefix', 'removed_prefix_qual', 'cdr3_start', 'cdr3_nt',
 
         'pre_cdr3_match', 'pre_cdr3_length', 'post_cdr3_match',
         'post_cdr3_length',
@@ -51,16 +41,13 @@ class SequenceAlignment(object):
         self.ids = ids
         self.sequence = sequence
         self.quality = quality
+        self.removed_prefix = None
         self.removed_prefix_qual = None
         self.cdr3_start = CDR3_OFFSET
 
     @property
     def pad_length(self):
-        return self._pad_length
-
-    @pad_length.setter
-    def pad_length(self, pad_length):
-        self._pad_length = max(pad_length, 0)
+        return max(0, self.germline_offset)
 
     @property
     def copy_number(self):
