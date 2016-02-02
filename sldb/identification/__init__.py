@@ -1,6 +1,7 @@
 import dnautils
 import traceback
 
+from sldb.common.log import logger
 from sldb.common.models import DuplicateSequence, NoResult, Sequence
 import sldb.util.funcs as funcs
 import sldb.util.lookups as lookups
@@ -10,18 +11,18 @@ class AlignmentException(Exception):
     pass
 
 
-def add_as_noresult(session, vdj, sample):
+def add_as_noresult(session, sample, seq_ids, sequence, quality):
     try:
         session.bulk_save_objects([
             NoResult(
                 seq_id=seq_id,
                 sample_id=sample.id,
-                sequence=vdj.sequence,
-                quality=vdj.quality
-            ) for seq_id in vdj.ids
+                sequence=sequence * 100,
+                quality=quality
+            ) for seq_id in seq_ids
         ])
-    except ValueError:
-        pass
+    except ValueError as e:
+        logging.warning('NoResult error', e)
 
 
 def add_as_sequence(session, vdj, sample, paired):

@@ -1,6 +1,8 @@
+from collections import OrderedDict
+
+from celery.exceptions import TimeoutError
 import dnautils
 import json
-import multiprocessing as mp
 import os
 import traceback
 
@@ -9,17 +11,28 @@ from Bio import SeqIO
 from sqlalchemy.sql import exists
 
 import sldb.common.config as config
+from sldb.common.log import logger
 import sldb.common.modification_log as mod_log
+from sldb.identification import add_as_noresult, add_as_sequence
 from sldb.common.models import (DuplicateSequence, NoResult, Sample, Sequence,
                                 Study, Subject)
-from sldb.identification import (add_as_noresult, add_as_sequence, add_uniques,
-                                 AlignmentException)
-from sldb.identification.vdj_sequence import VDJSequence
+from sldb.identification import AlignmentException
 from sldb.identification.v_genes import VGermlines
 from sldb.identification.j_genes import JGermlines
-import sldb.util.concurrent as concurrent
+from sldb.identification.tasks import align_sequence, align_to_vties
 import sldb.util.funcs as funcs
 import sldb.util.lookups as lookups
+
+def get_result(task, max_tries=None, timeout=.5):
+    tries = 0
+    while True:
+        if max_tries is not None and tries > max_tries:
+            raise TimeoutError()
+
+        try:
+            return task.get(timeout=timeout)
+        except TimeoutError:
+            tries += 1
 
 
 class SampleMetadata(object):
@@ -37,128 +50,91 @@ class SampleMetadata(object):
             raise Exception(('Could not find metadata for key {}'.format(key)))
 
 
-class IdentificationWorker(concurrent.Worker):
-    def __init__(self, session, v_germlines, j_germlines, trim, max_vties,
-                 min_similarity, sync_lock):
-        self._session = session
-        self._v_germlines = v_germlines
-        self._j_germlines = j_germlines
-        self._trim = trim
-        self._min_similarity = min_similarity
-        self._max_vties = max_vties
-        self._sync_lock = sync_lock
+def setup_sample(session, meta):
+    study, new = funcs.get_or_create(
+        session, Study, name=meta.get('study_name'))
 
-    def do_task(self, args):
-        meta = args['meta']
-        self._print('Starting sample {}'.format(meta.get('sample_name')))
-        study, sample = self._setup_sample(meta)
+    if new:
+        logger.info('Created new study "%s"', study.name)
+        session.commit()
 
-        vdjs = {}
-        parser = SeqIO.parse(os.path.join(args['path'], args['fn']), 'fasta' if
-                             args['fn'].endswith('.fasta') else 'fastq')
+    name = meta.get('sample_name')
+    sample, new = funcs.get_or_create(session, Sample, name=name, study=study)
+    if new:
+        sample.date = meta.get('date')
+        logger.info('Created new sample "%s"', sample.name)
+        for key in ('subset', 'tissue', 'disease', 'lab', 'experimenter',
+                    'ig_class', 'v_primer', 'j_primer'):
+            setattr(sample, key, meta.get(key, require=False))
+        subject, new = funcs.get_or_create(
+            session, Subject, study=study,
+            identifier=meta.get('subject'))
+        sample.subject = subject
+        session.commit()
 
-        # Collapse identical sequences
-        self._print('\tCollapsing identical sequences')
-        for record in parser:
-            seq = str(record.seq)[self._trim:]
-            if seq not in vdjs:
-                vdjs[seq] = VDJSequence(
-                    ids=[],
-                    seq=seq,
-                    v_germlines=self._v_germlines,
-                    j_germlines=self._j_germlines,
-                    quality=funcs.ord_to_quality(
-                        record.letter_annotations.get('phred_quality')
-                    )
-                )
-            vdjs[seq].ids.append(record.description)
+    return study, sample
 
-        self._print('\tAligning {} unique sequences'.format(len(vdjs)))
-        # Attempt to align all unique sequences
-        for sequence in funcs.periodic_commit(self._session, vdjs.keys()):
-            vdj = vdjs[sequence]
-            del vdjs[sequence]
-            try:
-                # The alignment was successful.  If the aligned sequence
-                # already exists, append the seq_ids.  Otherwise add it as a
-                # new unique sequence.
-                vdj.analyze()
-                if vdj.sequence in vdjs:
-                    vdjs[vdj.sequence].ids += vdj.ids
-                else:
-                    vdjs[vdj.sequence] = vdj
-            except AlignmentException:
-                add_as_noresult(self._session, vdj, sample)
-            except:
-                self._print('\tUnexpected error processing sequence '
-                            '{}\n\t{}'.format(vdj.ids[0],
-                                              traceback.format_exc()))
-        if len(vdjs) > 0:
-            avg_len = sum(
-                map(lambda vdj: vdj.v_length, vdjs.values())
-            ) / float(len(vdjs))
-            avg_mut = sum(
-                map(lambda vdj: vdj.mutation_fraction, vdjs.values())
-            ) / float(len(vdjs))
-            sample.v_ties_mutations = avg_mut
-            sample.v_ties_len = avg_len
 
-            self._print('\tRe-aligning {} sequences to V-ties, Mutations={}, '
-                        'Length={}'.format(
-                            len(vdjs), round(avg_mut, 2), round(avg_len, 2)))
+def process_sample(path, session, sample, meta):
+    unique_seqs = OrderedDict()
+    ftype = 'fasta' if path.endswith('.fasta') else 'fastq'
 
-            self._print('\tCollapsing ambiguous character sequences')
-            add_uniques(self._session, sample, vdjs.values(),
-                        meta.get('paired'), avg_len, avg_mut,
-                        self._min_similarity, self._max_vties)
+    print 'Collapsing identical sequences'
+    for i, record in enumerate(SeqIO.parse(path, ftype)):
+        if i > 100:
+            break
+        seq = str(record.seq)
+        if seq not in unique_seqs:
+            quality = funcs.ord_to_quality(
+                record.letter_annotations.get('phred_quality')
+            )
+            unique_seqs[seq] = {
+                'ids': [],
+                'quality': quality,
+                'align_result': align_sequence.delay(seq, quality)
+            }
+        unique_seqs[seq]['ids'].append(record.description)
 
-        sample.status = 'identified'
-        self._session.commit()
-        self._print('Completed sample {}'.format(sample.name))
+    mutations = []
+    lengths = []
+    print 'Waiting for workers to finish'
+    for seq in unique_seqs.keys():
+        info = unique_seqs[seq]
+        try:
+            info['align_result'] = get_result(info['align_result'])
+            lengths.append(info['align_result']['v']['length'])
+            mutations.append(info['align_result']['v']['mutation_fraction'])
+        except AlignmentException as e:
+            #add_as_noresult(session, sample, info['ids'], seq, info['quality'])
+            del unique_seqs[seq]
 
-    def cleanup(self):
-        self._print('Identification worker terminating')
-        self._session.close()
+    avg_mut = sum(mutations) / float(len(mutations))
+    avg_len = sum(lengths) / float(len(lengths))
+    for seq, info in unique_seqs.iteritems():
+        info['vties_result'] = align_to_vties.delay(
+            info['align_result']['v'],
+            info['align_result']['j'],
+            seq,
+            info['quality'],
+            avg_len,
+            avg_mut
+        )
 
-    def _setup_sample(self, meta):
-        self._sync_lock.acquire()
-        study, new = funcs.get_or_create(
-            self._session, Study, name=meta.get('study_name'))
-
-        if new:
-            self._print('\tCreated new study "{}"'.format(study.name))
-            self._session.commit()
-
-        name = meta.get('sample_name')
-        sample, new = funcs.get_or_create(
-            self._session, Sample, name=name, study=study)
-        if new:
-            sample.date = meta.get('date')
-            self._print('\tCreated new sample "{}"'.format(
-                sample.name))
-            for key in ('subset', 'tissue', 'disease', 'lab', 'experimenter',
-                        'ig_class', 'v_primer', 'j_primer'):
-                setattr(sample, key, meta.get(key, require=False))
-            subject, new = funcs.get_or_create(
-                self._session, Subject, study=study,
-                identifier=meta.get('subject'))
-            sample.subject = subject
-            self._session.commit()
-
-        self._sync_lock.release()
-
-        return study, sample
-
+    for seq, info in unique_seqs.iteritems():
+        try:
+            info['vties_result'] = get_result(info['vties_result'])
+            print info['vties_result']
+        except AlignmentException as e:
+            pass
 
 def run_identify(session, args):
     mod_log.make_mod('identification', session=session, commit=True,
                      info=vars(args))
-    session.close()
     # Load the germlines from files
     v_germlines = VGermlines(args.v_germlines)
     j_germlines = JGermlines(args.j_germlines, args.upstream_of_cdr3,
                              args.anchor_len, args.min_anchor_len)
-    tasks = concurrent.TaskQueue()
+    tasks = []
 
     sample_names = set([])
     fail = False
@@ -200,24 +176,18 @@ def run_identify(session, args):
                        'continue.').format(meta.get('sample_name'))
                 return
             else:
-                tasks.add_task({
-                    'path': directory,
-                    'fn': fn,
+                tasks.append({
+                    'path': os.path.join(directory, fn),
                     'meta': meta
                 })
                 sample_names.add(meta.get('sample_name'))
-
         if fail and not args.warn_existing:
             print ('Encountered errors.  Not running any identification.  To '
                    'skip samples that are already in the database use '
                    '--warn-existing.')
             return
 
-    lock = mp.RLock()
-    for i in range(0, min(args.nproc, tasks.num_tasks())):
-        worker_session = config.init_db(args.db_config)
-        tasks.add_worker(IdentificationWorker(
-            worker_session, v_germlines, j_germlines, args.trim,
-            args.max_vties, args.min_similarity / float(100), lock))
 
-    tasks.start()
+    for task in tasks:
+        study, sample = setup_sample(session, meta)
+        process_sample(session=session, sample=sample, **task)
