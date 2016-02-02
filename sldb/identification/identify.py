@@ -1,8 +1,6 @@
-from collections import OrderedDict
-
-from celery.exceptions import TimeoutError
 import dnautils
 import json
+import logging
 import os
 import traceback
 
@@ -11,28 +9,17 @@ from Bio import SeqIO
 from sqlalchemy.sql import exists
 
 import sldb.common.config as config
-from sldb.common.log import logger
+from sldb.common.log import logger, setup_default_logging
 import sldb.common.modification_log as mod_log
-from sldb.identification import add_as_noresult, add_as_sequence
-from sldb.common.models import (DuplicateSequence, NoResult, Sample, Sequence,
-                                Study, Subject)
-from sldb.identification import AlignmentException
+from sldb.identification import add_as_noresult, add_as_sequence, get_result
+from sldb.common.models import Sample, Sequence, Study, Subject
+from sldb.identification import AlignmentException, SequenceAlignment
 from sldb.identification.v_genes import VGermlines
 from sldb.identification.j_genes import JGermlines
-from sldb.identification.tasks import align_sequence, align_to_vties
+from sldb.identification.tasks import (align_sequence, align_to_vties,
+                                       collapse_sequences)
 import sldb.util.funcs as funcs
 import sldb.util.lookups as lookups
-
-def get_result(task, max_tries=None, timeout=.5):
-    tries = 0
-    while True:
-        if max_tries is not None and tries > max_tries:
-            raise TimeoutError()
-
-        try:
-            return task.get(timeout=timeout)
-        except TimeoutError:
-            tries += 1
 
 
 class SampleMetadata(object):
@@ -75,61 +62,93 @@ def setup_sample(session, meta):
     return study, sample
 
 
-def process_sample(path, session, sample, meta):
-    unique_seqs = OrderedDict()
+def process_sample(path, session, sample, meta, min_similarity, max_vties):
+    unique_seqs = {}
+    logger.info('Collapsing identical sequences')
     ftype = 'fasta' if path.endswith('.fasta') else 'fastq'
-
-    print 'Collapsing identical sequences'
     for i, record in enumerate(SeqIO.parse(path, ftype)):
-        if i > 100:
+        if i >= 100:
             break
         seq = str(record.seq)
-        if seq not in unique_seqs:
-            quality = funcs.ord_to_quality(
-                record.letter_annotations.get('phred_quality')
+        try:
+            unique_seqs[seq].ids.append(record.description)
+        except KeyError:
+            aln = SequenceAlignment(
+                ids=[record.description],
+                sequence=seq,
+                quality=funcs.ord_to_quality(
+                    record.letter_annotations.get('phred_quality')
+                )
             )
-            unique_seqs[seq] = {
-                'ids': [],
-                'quality': quality,
-                'align_result': align_sequence.delay(seq, quality)
-            }
-        unique_seqs[seq]['ids'].append(record.description)
+            aln.pending_result = align_sequence.delay(aln)
+            unique_seqs[seq] = aln
 
     mutations = []
     lengths = []
-    print 'Waiting for workers to finish'
+    logger.info('Waiting for workers to finish')
     for seq in unique_seqs.keys():
-        info = unique_seqs[seq]
         try:
-            info['align_result'] = get_result(info['align_result'])
-            lengths.append(info['align_result']['v']['length'])
-            mutations.append(info['align_result']['v']['mutation_fraction'])
+            unique_seqs[seq] = unique_seqs[seq].await_result()
+            lengths.append(unique_seqs[seq].v_length)
+            mutations.append(unique_seqs[seq].v_mutation_fraction)
         except AlignmentException as e:
-            #add_as_noresult(session, sample, info['ids'], seq, info['quality'])
+            add_as_noresult(session, sample, unique_seqs[seq])
             del unique_seqs[seq]
+    session.commit()
 
+    logger.info('Queueing V-ties alignment')
     avg_mut = sum(mutations) / float(len(mutations))
     avg_len = sum(lengths) / float(len(lengths))
-    for seq, info in unique_seqs.iteritems():
-        info['vties_result'] = align_to_vties.delay(
-            info['align_result']['v'],
-            info['align_result']['j'],
-            seq,
-            info['quality'],
-            avg_len,
-            avg_mut
-        )
 
-    for seq, info in unique_seqs.iteritems():
+    sample.v_ties_mutations = avg_mut
+    sample.v_ties_len = avg_len
+    session.commit()
+
+    for aln in unique_seqs.values():
+        aln.pending_result = align_to_vties.delay(aln, avg_len, avg_mut)
+
+    logger.info('Waiting for workers to finish')
+    bucketed_seqs = {}
+    for seq in unique_seqs.keys():
         try:
-            info['vties_result'] = get_result(info['vties_result'])
-            print info['vties_result']
+            unique_seqs[seq] = unique_seqs[seq].await_result()
+            aln = unique_seqs[seq]
+            if (aln.v_similarity < min_similarity or
+                    len(aln.v_genes) > max_vties):
+                raise AlignmentException(
+                    'V-match too low or too many V-ties'
+                )
+            bucket_key = (
+                funcs.format_ties(aln.v_genes, 'IGHV'),
+                funcs.format_ties(aln.j_genes, 'IGHJ'),
+                aln.cdr3_num_nts,
+            )
+            if bucket_key not in bucketed_seqs:
+                bucketed_seqs[bucket_key] = {}
+            bucket = bucketed_seqs[bucket_key]
+
+            try:
+                bucket[seq].ids += aln['ids']
+            except KeyError:
+                bucket[seq] = aln
         except AlignmentException as e:
-            pass
+            add_as_noresult(session, sample, aln)
+
+    session.commit()
+
+    collapsed_seqs = []
+    for sequences in bucketed_seqs.values():
+        collapsed_seqs.append(collapse_sequences.delay(sequences))
+
+    for collapsed in collapsed_seqs:
+        for aln in get_result(collapsed):
+            add_as_sequence(session, sample, aln)
+    session.commit()
 
 def run_identify(session, args):
     mod_log.make_mod('identification', session=session, commit=True,
                      info=vars(args))
+    setup_default_logging()
     # Load the germlines from files
     v_germlines = VGermlines(args.v_germlines)
     j_germlines = JGermlines(args.j_germlines, args.upstream_of_cdr3,
@@ -190,4 +209,8 @@ def run_identify(session, args):
 
     for task in tasks:
         study, sample = setup_sample(session, meta)
-        process_sample(session=session, sample=sample, **task)
+        process_sample(
+            session=session, sample=sample,
+            min_similarity=args.min_similarity / 100.0,
+            max_vties=args.max_vties, **task
+        )

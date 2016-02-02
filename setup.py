@@ -40,6 +40,7 @@ setup(
         'biopython',
         'bottle',
         'ete2',
+        'nose',
         'numpy',
         'redis',
         'scipy',

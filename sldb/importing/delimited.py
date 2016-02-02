@@ -49,8 +49,7 @@ def _collapse_seqs(session, sample, reader, columns):
     return seqs.values()
 
 
-def read_file(session, handle, sample, v_germlines, j_germlines,
-              paired, columns):
+def read_file(session, handle, sample, v_germlines, j_germlines, columns):
     seqs = _collapse_seqs(session, sample, csv.DictReader(handle,
                           delimiter='\t'), columns)
 
@@ -89,7 +88,7 @@ def read_file(session, handle, sample, v_germlines, j_germlines,
     print 'Aligned {} / {} sequences'.format(total - missed + 1, total)
 
     print 'Collapsing ambiguous character sequences'
-    add_uniques(session, sample, aligned_seqs.values(), paired)
+    add_uniques(session, sample, aligned_seqs.values())
     session.commit()
 
 
@@ -122,5 +121,4 @@ def run_import(session, args):
         return
 
     with open(args.input_file) as fh:
-        read_file(session, fh, sample, v_germlines, j_germlines,
-                  not args.unpaired, args)
+        read_file(session, fh, sample, v_germlines, j_germlines, args)
