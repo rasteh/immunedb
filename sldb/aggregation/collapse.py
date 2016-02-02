@@ -1,13 +1,15 @@
 from sqlalchemy.sql import exists
 
 import dnautils
+from sldb.aggregation.tasks import collapse_subject_sequences
+from sldb.common.celery_app import get_result
 import sldb.common.config as config
 from sldb.common.models import (Clone, Sample, Sequence, SequenceCollapse,
                                 Subject)
 import sldb.common.modification_log as mod_log
-import sldb.util.concurrent as concurrent
 
 
+'''
 class CollapseWorker(concurrent.Worker):
     """A worker for collapsing sequences without including positions where
     either sequences has an 'N'.
@@ -81,6 +83,10 @@ class CollapseWorker(concurrent.Worker):
         self._session.close()
 
 
+'''
+def record_collapse(collapsed_seqs):
+    print collapsed_seqs
+
 def run_collapse(session, args):
     mod_log.make_mod('collapse', session=session, commit=True,
                      info=vars(args))
@@ -112,8 +118,6 @@ def run_collapse(session, args):
     print 'Creating task queue to collapse {} subjects.'.format(
         len(subject_ids))
 
-    tasks = concurrent.TaskQueue()
-
     for subject_id in subject_ids:
         buckets = session.query(
             Sequence.bucket_hash
@@ -122,11 +126,18 @@ def run_collapse(session, args):
         ).group_by(
             Sequence.bucket_hash
         )
+        tasks = []
         for bucket in buckets:
-            tasks.add_task(bucket.bucket_hash)
+            sequences = session.query(
+                Sequence.sample_id,
+                Sequence.ai,
+                Sequence.seq_id,
+                Sequence.sequence,
+                Sequence.copy_number
+            ).filter(
+                Sequence.bucket_hash == bucket.bucket_hash
+            ).all()
+            tasks.append(collapse_subject_sequences.delay(sequences))
 
-    for i in range(0, min(tasks.num_tasks(), args.nproc)):
-        tasks.add_worker(CollapseWorker(config.init_db(args.db_config)))
-    tasks.start()
-
-    session.close()
+        for task in tasks:
+            record_collapse(get_result(task))

@@ -67,8 +67,6 @@ def process_sample(path, session, sample, meta, min_similarity, max_vties):
     logger.info('Collapsing identical sequences')
     ftype = 'fasta' if path.endswith('.fasta') else 'fastq'
     for i, record in enumerate(SeqIO.parse(path, ftype)):
-        if i >= 100:
-            break
         seq = str(record.seq)
         try:
             unique_seqs[seq].ids.append(record.description)
@@ -88,7 +86,9 @@ def process_sample(path, session, sample, meta, min_similarity, max_vties):
     logger.info('Waiting for workers to finish')
     for seq in unique_seqs.keys():
         try:
+            all_ids = unique_seqs[seq].ids
             unique_seqs[seq] = unique_seqs[seq].await_result()
+            unique_seqs[seq].ids = all_ids
             lengths.append(unique_seqs[seq].v_length)
             mutations.append(unique_seqs[seq].v_mutation_fraction)
         except AlignmentException as e:
@@ -133,7 +133,6 @@ def process_sample(path, session, sample, meta, min_similarity, max_vties):
                 bucket[seq] = aln
         except AlignmentException as e:
             add_as_noresult(session, sample, aln)
-
     session.commit()
 
     collapsed_seqs = []
@@ -145,6 +144,7 @@ def process_sample(path, session, sample, meta, min_similarity, max_vties):
             add_as_sequence(session, sample, aln)
     session.commit()
 
+
 def run_identify(session, args):
     mod_log.make_mod('identification', session=session, commit=True,
                      info=vars(args))
@@ -153,9 +153,8 @@ def run_identify(session, args):
     v_germlines = VGermlines(args.v_germlines)
     j_germlines = JGermlines(args.j_germlines, args.upstream_of_cdr3,
                              args.anchor_len, args.min_anchor_len)
-    tasks = []
 
-    sample_names = set([])
+    samples = {}
     fail = False
     for directory in args.sample_dirs:
         # If metadata is not specified, assume it is "metadata.json" in the
@@ -190,16 +189,15 @@ def run_identify(session, args):
                     args.warn_existing else 'Cannot continue.'
                 )
                 fail = True
-            elif meta.get('sample_name') in sample_names:
+            elif meta.get('sample_name') in samples:
                 print ('Sample {} exists more than once in metadata. Cannot '
                        'continue.').format(meta.get('sample_name'))
                 return
             else:
-                tasks.append({
+                samples[meta.get('sample_name')] = {
                     'path': os.path.join(directory, fn),
                     'meta': meta
-                })
-                sample_names.add(meta.get('sample_name'))
+                }
         if fail and not args.warn_existing:
             print ('Encountered errors.  Not running any identification.  To '
                    'skip samples that are already in the database use '
@@ -207,7 +205,7 @@ def run_identify(session, args):
             return
 
 
-    for task in tasks:
+    for task in samples.values():
         study, sample = setup_sample(session, meta)
         process_sample(
             session=session, sample=sample,

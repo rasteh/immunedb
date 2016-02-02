@@ -3,8 +3,8 @@ import os
 from functools import wraps
 
 from Bio.Seq import Seq
-from celery import Celery
 
+from sldb.common.celery_app import app
 from sldb.common.models import CDR3_OFFSET
 from sldb.identification import AlignmentException
 from sldb.identification.v_genes import (get_common_seq, find_v_position,
@@ -16,7 +16,6 @@ from sldb.util.funcs import find_streak_position
 MISMATCH_THRESHOLD = 3
 v_germlines = None
 j_germlines = None
-app = Celery('identify', backend='redis://', broker='amqp://guest@localhost//')
 
 def find_j(j_germlines, aln):
     '''Finds the location and type of J gene'''
@@ -107,7 +106,7 @@ def find_v(v_germlines, aln):
 
         if aln.v_genes is not None:
             # Determine the pad length
-            aln.pad_length = germ_pos - anchor_pos
+            aln.germline_offset = germ_pos - anchor_pos
             # Mutation ratio is the distance divided by the length of overlap
             aln.v_mutation_fraction = round(v_score / float(aln.v_length), 2)
             return aln
@@ -150,18 +149,18 @@ def align_to_vties(v_germlines, j_germlines, aln, avg_len, avg_mut):
     )[:CDR3_OFFSET]
     # If we need to pad the sequence, do so, otherwise trim the sequence to
     # the germline length
-    if aln.pad_length >= 0:
-        aln.sequence = 'N' * aln.pad_length + aln.sequence
+    if aln.germline_offset >= 0:
+        aln.sequence = 'N' * aln.germline_offset + aln.sequence
         if aln.quality is not None:
-            aln.quality = ' ' * aln.pad_length + aln.quality
+            aln.quality = ' ' * aln.germline_offset + aln.quality
     else:
-        aln.removed_prefix = aln.sequence[:-aln.pad_length]
-        aln.sequence = aln.sequence[-aln.pad_length:]
+        aln.removed_prefix = aln.sequence[:-aln.germline_offset]
+        aln.sequence = aln.sequence[-aln.germline_offset:]
         if aln.quality is not None:
-            aln.removed_prefix_qual = aln.quality[:-aln.pad_length]
-            aln.quality = aln.quality[-aln.pad_length:]
+            aln.removed_prefix_qual = aln.quality[:-aln.germline_offset]
+            aln.quality = aln.quality[-aln.germline_offset:]
     # Update the anchor positions after adding padding / trimming
-    aln.j_anchor_pos += aln.pad_length
+    aln.j_anchor_pos += aln.germline_offset
 
     # Add germline gaps to sequence before CDR3 and update anchor positions
     for i, c in enumerate(aln.germline):
@@ -203,9 +202,9 @@ def align_to_vties(v_germlines, j_germlines, aln, avg_len, avg_mut):
 
     # If there is padding, get rid of it in the sequence and align the
     # germline
-    if aln.pad_length > 0:
-        pre_cdr3_germ = pre_cdr3_germ[aln.pad_length:]
-        pre_cdr3_seq = pre_cdr3_seq[aln.pad_length:]
+    if aln.germline_offset > 0:
+        pre_cdr3_germ = pre_cdr3_germ[aln.germline_offset:]
+        pre_cdr3_seq = pre_cdr3_seq[aln.germline_offset:]
 
     # Calculate the pre-CDR3 length and distance
     pre_cdr3_length = len(pre_cdr3_seq)
@@ -244,11 +243,11 @@ def align_to_vties(v_germlines, j_germlines, aln, avg_len, avg_mut):
 @app.task
 def collapse_sequences(alignments):
     alignments = sorted(alignments.values(), cmp=lambda a, b:
-                       cmp(a.copy_number, b.copy_number))
+                       cmp(a.copy_number, b.copy_number), reverse=True)
     current_largest = 0
     while current_largest < len(alignments):
         larger = alignments[current_largest]
-        for i in reversed(range(len(alignments[current_largest + 1:]))):
+        for i in reversed(range(current_largest + 1, len(alignments))):
             smaller = alignments[i]
             if dnautils.equal(larger.sequence, smaller.sequence):
                 larger.ids += smaller.ids
