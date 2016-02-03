@@ -62,12 +62,14 @@ def setup_sample(session, meta):
     return study, sample
 
 
-def process_sample(path, session, sample, meta, min_similarity, max_vties):
+def process_sample(path, session, meta, min_similarity, max_vties):
+    study, sample = setup_sample(session, meta)
     unique_seqs = {}
     logger.info('Collapsing identical sequences')
     ftype = 'fasta' if path.endswith('.fasta') else 'fastq'
     for i, record in enumerate(SeqIO.parse(path, ftype)):
         seq = str(record.seq)
+
         try:
             unique_seqs[seq].ids.append(record.description)
         except KeyError:
@@ -92,7 +94,7 @@ def process_sample(path, session, sample, meta, min_similarity, max_vties):
             lengths.append(unique_seqs[seq].v_length)
             mutations.append(unique_seqs[seq].v_mutation_fraction)
         except AlignmentException as e:
-            add_as_noresult(session, sample, unique_seqs[seq])
+            add_as_noresult(session, sample, unique_seqs[seq], str(e))
             del unique_seqs[seq]
     session.commit()
 
@@ -112,27 +114,25 @@ def process_sample(path, session, sample, meta, min_similarity, max_vties):
     for seq in unique_seqs.keys():
         try:
             unique_seqs[seq] = unique_seqs[seq].await_result()
-            aln = unique_seqs[seq]
-            if (aln.v_similarity < min_similarity or
-                    len(aln.v_genes) > max_vties):
+            if (unique_seqs[seq].v_similarity < min_similarity or
+                    len(unique_seqs[seq].v_genes) > max_vties):
                 raise AlignmentException(
                     'V-match too low or too many V-ties'
                 )
             bucket_key = (
-                funcs.format_ties(aln.v_genes, 'IGHV'),
-                funcs.format_ties(aln.j_genes, 'IGHJ'),
-                aln.cdr3_num_nts,
+                funcs.format_ties(unique_seqs[seq].v_genes, 'IGHV'),
+                funcs.format_ties(unique_seqs[seq].j_genes, 'IGHJ'),
+                unique_seqs[seq].cdr3_num_nts,
             )
             if bucket_key not in bucketed_seqs:
                 bucketed_seqs[bucket_key] = {}
-            bucket = bucketed_seqs[bucket_key]
 
             try:
-                bucket[seq].ids += aln['ids']
+                bucketed_seqs[bucket_key][seq].ids += unique_seqs[seq].ids
             except KeyError:
-                bucket[seq] = aln
+                bucketed_seqs[bucket_key][seq] = unique_seqs[seq]
         except AlignmentException as e:
-            add_as_noresult(session, sample, aln)
+            add_as_noresult(session, sample, unique_seqs[seq], str(e))
     session.commit()
 
     collapsed_seqs = []
@@ -166,7 +166,7 @@ def run_identify(session, args):
 
         # Verify the metadata file exists
         if not os.path.isfile(meta_fn):
-            print 'Metadata file not found.'
+            logger.critical('Metadata file not found')
             return
 
         with open(meta_fn) as fh:
@@ -184,14 +184,16 @@ def run_identify(session, args):
                     exists().where(
                         Sequence.sample_id == Sample.id
                     )).first() is not None:
-                print 'Sample {} already exists. {}'.format(
-                    meta.get('sample_name'), 'Skipping.' if
-                    args.warn_existing else 'Cannot continue.'
-                )
+                if args.warn_existing:
+                    logger.warning('Sample %s already exists. Skipping.',
+                                   meta.get('sample_name'))
+                else:
+                    logger.warning('Sample %s already exists. Cannot proceed.',
+                                   meta.get('sample_name'))
                 fail = True
             elif meta.get('sample_name') in samples:
-                print ('Sample {} exists more than once in metadata. Cannot '
-                       'continue.').format(meta.get('sample_name'))
+                logger.critical('Sample %s exists more than once in metadata. '
+                                'Cannot continue.', meta.get('sample_name'))
                 return
             else:
                 samples[meta.get('sample_name')] = {
@@ -199,16 +201,16 @@ def run_identify(session, args):
                     'meta': meta
                 }
         if fail and not args.warn_existing:
-            print ('Encountered errors.  Not running any identification.  To '
-                   'skip samples that are already in the database use '
-                   '--warn-existing.')
+            logger.critical(
+                'Encountered errors.  Not running any identification.  To '
+                'skip samples that are already in the database use '
+                '--warn-existing.'
+            )
             return
 
 
     for task in samples.values():
-        study, sample = setup_sample(session, meta)
         process_sample(
-            session=session, sample=sample,
-            min_similarity=args.min_similarity / 100.0,
+            session=session, min_similarity=args.min_similarity / 100.0,
             max_vties=args.max_vties, **task
         )

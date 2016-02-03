@@ -82,8 +82,8 @@ def find_j(j_germlines, aln):
 
 
 def find_v(v_germlines, aln):
+    aligned_v = VGene(aln.sequence)
     for anchor_pos in find_v_position(aln.sequence):
-        aligned_v = VGene(aln.sequence)
         aln.v_genes = None
         v_score = None
         for v, germ in sorted(v_germlines.iteritems()):
@@ -141,8 +141,7 @@ def align_sequence(v_germlines, j_germlines, aln):
 @app.task
 @with_germlines
 def align_to_vties(v_germlines, j_germlines, aln, avg_len, avg_mut):
-    if avg_len is not None and avg_mut is not None:
-        aln.v_genes = v_germlines.get_ties(aln.v_genes, avg_len, avg_mut)
+    aln.v_genes = v_germlines.get_ties(aln.v_genes, avg_len, avg_mut)
     # Set the germline to the V gene up to the CDR3
     aln.germline = get_common_seq(
         [v_germlines[v].sequence for v in aln.v_genes]
@@ -173,6 +172,7 @@ def align_to_vties(v_germlines, j_germlines, aln, avg_len, avg_mut):
     j_germ = get_common_seq(
         map(reversed, [j_germlines[j] for j in aln.j_genes]))
     j_germ = ''.join(reversed(j_germ))
+
     # Calculate the length of the CDR3
     cdr3_len = (
         aln.j_anchor_pos + j_germlines.anchor_len -
@@ -180,7 +180,7 @@ def align_to_vties(v_germlines, j_germlines, aln, avg_len, avg_mut):
     )
 
     if cdr3_len < 3:
-        raise AlignmentException('CDR3 has no AAs'.format(cdr3_len))
+        raise AlignmentException('CDR3 has no AAs')
 
     aln.j_anchor_pos += cdr3_len
     # Fill germline CDR3 with gaps
