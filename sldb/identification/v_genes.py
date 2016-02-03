@@ -23,7 +23,7 @@ class VGene(object):
             self._ungapped_anchor_pos = find_v_position(
                 self.sequence_ungapped).next()
         except StopIteration:
-            raise AlignmentException('Unable to find anchor')
+            raise AlignmentException('Unable to V find anchor')
 
     @property
     def sequence(self):

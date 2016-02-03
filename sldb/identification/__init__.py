@@ -99,18 +99,19 @@ class SequenceAlignment(object):
         return False
 
 
-def add_as_noresult(session, sample, alignment):
+def add_as_noresult(session, sample, alignment, reason):
     try:
         session.bulk_save_objects([
             NoResult(
                 seq_id=seq_id,
                 sample_id=sample.id,
                 sequence=alignment.sequence,
-                quality=alignment.quality
+                quality=alignment.quality,
+                reason=reason,
             ) for seq_id in alignment.ids
         ])
     except ValueError as e:
-        logging.warning('NoResult error', e)
+        logger.warning('Could not add NoResult: %s', e)
 
 
 def add_as_sequence(session, sample, alignment):
@@ -137,8 +138,8 @@ def add_as_sequence(session, sample, alignment):
                     duplicate_seq_ai=seq.ai
                     ) for seq_id in alignment.ids[1:]
             ])
-        except ValueError as ex:
-            pass
-    except ValueError:
-        add_as_noresult(session, sample, [seq.seq_id] + dup_ids, seq.sequence,
-                        seq.quality)
+        except ValueError as e:
+            logger.warning('Could not add DuplicateSequence: %s', e)
+    except ValueError as e:
+        logger.warning('Could not add Sequence: %s', e)
+        add_as_noresult(session, sample, alignment, str(e))
