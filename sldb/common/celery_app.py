@@ -1,4 +1,8 @@
-from celery import Celery
+from contextlib import contextmanager
+import multiprocessing as mp
+
+from celery import Celery, current_app
+from celery.bin import worker
 from celery.exceptions import TimeoutError
 
 app = Celery('sldb', backend='redis://', broker='amqp://guest@localhost//')
@@ -13,3 +17,16 @@ def get_result(task, max_tries=None, timeout=.5):
             return task.get(timeout=timeout)
         except TimeoutError:
             tries += 1
+
+def _run_worker(concurrency):
+    worker.worker(app=app).run(concurrency=concurrency)
+
+@contextmanager
+def local_worker(start, concurrency):
+    if start:
+        p = mp.Process(target=_run_worker, args=(concurrency,))
+        p.start()
+        yield p
+        p.terminate()
+    else:
+        yield None

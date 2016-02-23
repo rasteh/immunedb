@@ -29,6 +29,8 @@ def get_base_arg_parser(desc='', multiproc=True, **kwargs):
         parser.add_argument('--nproc', default=num_cpu, type=int, help='Number'
                             ' of subprocesses to run ' '(Default: {})'.format(
                                 num_cpu))
+        parser.add_argument('--no-worker', action='store_true', help='If '
+                            'specified, no local worker will be started.')
 
     return parser
 
