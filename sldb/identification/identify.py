@@ -9,6 +9,7 @@ from Bio import SeqIO
 from sqlalchemy.sql import exists
 
 import sldb.common.config as config
+from sldb.common.celery_app import local_worker
 from sldb.common.log import logger, setup_default_logging
 import sldb.common.modification_log as mod_log
 from sldb.identification import add_as_noresult, add_as_sequence, get_result
@@ -208,9 +209,9 @@ def run_identify(session, args):
             )
             return
 
-
-    for task in samples.values():
-        process_sample(
-            session=session, min_similarity=args.min_similarity / 100.0,
-            max_vties=args.max_vties, **task
-        )
+    with local_worker(not args.no_worker, args.nproc):
+        for task in samples.values():
+            process_sample(
+                session=session, min_similarity=args.min_similarity / 100.0,
+                max_vties=args.max_vties, **task
+            )

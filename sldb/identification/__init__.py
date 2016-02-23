@@ -16,10 +16,10 @@ class AlignmentException(Exception):
 ALIGNMENT_COPY_FIELDS = (
     'probable_indel_or_misalign', 'num_gaps', 'pad_length', 'v_match',
     'v_length', 'j_match', 'j_length', 'removed_prefix',
-    'removed_prefix_qual', 'v_mutation_fraction', 'pre_cdr3_match',
-    'pre_cdr3_match', 'post_cdr3_length', 'post_cdr3_match',
-    'in_frame', 'functional', 'stop', 'copy_number', 'cdr3_nt',
-    'cdr3_aa', 'cdr3_num_nts', 'sequence', 'quality', 'germline',
+    'removed_prefix_qual', 'v_mutation_fraction', 'pre_cdr3_length',
+    'pre_cdr3_match', 'pre_cdr3_match', 'post_cdr3_length', 'post_cdr3_match',
+    'in_frame', 'functional', 'stop', 'copy_number', 'cdr3_nt', 'cdr3_aa',
+    'cdr3_num_nts', 'sequence', 'quality', 'germline',
     'probable_indel_or_misalign'
 )
 
