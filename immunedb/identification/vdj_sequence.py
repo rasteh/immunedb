@@ -62,7 +62,7 @@ class VDJSequence(object):
             self.analyze()
 
     def analyze(self):
-        if not all(map(lambda c: c in 'ATCGN', self.sequence)):
+        if not all([c in 'ATCGN' for c in self.sequence]):
             raise AlignmentException('Invalid characters in sequence.')
 
         self._find_j()
@@ -167,12 +167,12 @@ class VDJSequence(object):
         self._j = []
         if self._force_js:
             j_germs = {
-                k: v for k, v in self.j_germlines.iteritems()
+                k: v for k, v in self.j_germlines.items()
                 if k in self._force_js
             }
         else:
             j_germs = self.j_germlines
-        for j_gene, j_seq in j_germs.iteritems():
+        for j_gene, j_seq in j_germs.items():
             seq_j = self.sequence[end_of_j - len(j_seq):end_of_j]
             dist = dnautils.hamming(seq_j, j_seq[:len(seq_j)])
             if best_dist is None or dist < best_dist:
@@ -236,7 +236,7 @@ class VDJSequence(object):
         '''Finds the V gene closest to that of the sequence'''
         aligned_v = VGene(self.sequence)
         v_score = None
-        for v, germ in sorted(self.v_germlines.alignments.iteritems()):
+        for v, germ in sorted(self.v_germlines.alignments.items()):
             if self._force_vs is not None and v not in self._force_vs:
                 continue
             try:
@@ -293,7 +293,7 @@ class VDJSequence(object):
                 self.j_anchor_pos += 1
 
         j_germ = get_common_seq(
-            map(reversed, [self.j_germlines[j] for j in self.j_gene]))
+            list(map(reversed, [self.j_germlines[j] for j in self.j_gene])))
         j_germ = ''.join(reversed(j_germ))
         # Calculate the length of the CDR3
         self._cdr3_len = (

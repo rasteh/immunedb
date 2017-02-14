@@ -42,7 +42,7 @@ class FASTAWriter(SequenceWriter):
         )
 
     def _get_header(self, metadata):
-        fields = {k: v for k, v in metadata.iteritems() if k in
+        fields = {k: v for k, v in metadata.items() if k in
                   self._selected_fields}
         for field in self._required_fields:
             if field in fields:
@@ -50,8 +50,7 @@ class FASTAWriter(SequenceWriter):
         return ''.join([
             metadata['seq_id'],
             '|' if len(fields) > 0 else '',
-            '|'.join(map(lambda (k, v): '{}={}'.format(k, v),
-                     fields.iteritems()))
+            '|'.join(['{}={}'.format(k_v[0], k_v[1]) for k_v in iter(fields.items())])
         ])
 
 

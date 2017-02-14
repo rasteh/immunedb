@@ -177,7 +177,7 @@ class ClonalWorker(concurrent.Worker):
             if key in clones:
                 clone = clones[key]
             else:
-                for test_clone in clones.values():
+                for test_clone in list(clones.values()):
                     same_bin = (test_clone.v_gene == key[0] and
                                 test_clone.j_gene == key[1] and
                                 test_clone.cdr3_num_nts == len(key[2])
@@ -220,7 +220,7 @@ class ClonalWorker(concurrent.Worker):
                 clones[seq.clone_id].append(seq)
             if None in clones:
                 for seq_to_add in clones[None]:
-                    for clone_id, existing_seqs in clones.iteritems():
+                    for clone_id, existing_seqs in clones.items():
                         if clone_id is None:
                             continue
                         if similar_to_all(seq_to_add, existing_seqs,
@@ -239,7 +239,7 @@ class ClonalWorker(concurrent.Worker):
                         clones[new_clone.id] = [seq_to_add]
                 del clones[None]
 
-            for clone_id, seqs in clones.iteritems():
+            for clone_id, seqs in clones.items():
                 to_update = [
                     {
                         'sample_id': s.sample_id,
@@ -327,7 +327,7 @@ def run_clones(session, args):
 
     """
     if args.subject_ids is None:
-        subject_ids = map(lambda s: s.id, session.query(Subject.id).all())
+        subject_ids = [s.id for s in session.query(Subject.id).all()]
     else:
         subject_ids = args.subject_ids
     mod_log.make_mod('clones', session=session, commit=True, info=vars(args))

@@ -74,7 +74,7 @@ class IdentificationWorker(concurrent.Worker):
 
         self.info('\tAligning {} unique sequences'.format(len(vdjs)))
         # Attempt to align all unique sequences
-        for sequence in funcs.periodic_commit(self._session, vdjs.keys()):
+        for sequence in funcs.periodic_commit(self._session, list(vdjs.keys())):
             vdj = vdjs[sequence]
             del vdjs[sequence]
             try:
@@ -94,10 +94,10 @@ class IdentificationWorker(concurrent.Worker):
                         vdj.ids[0], traceback.format_exc()))
         if len(vdjs) > 0:
             avg_len = sum(
-                map(lambda vdj: vdj.v_length, vdjs.values())
+                [vdj.v_length for vdj in list(vdjs.values())]
             ) / float(len(vdjs))
             avg_mut = sum(
-                map(lambda vdj: vdj.mutation_fraction, vdjs.values())
+                [vdj.mutation_fraction for vdj in list(vdjs.values())]
             ) / float(len(vdjs))
             sample.v_ties_mutations = avg_mut
             sample.v_ties_len = avg_len
@@ -105,7 +105,7 @@ class IdentificationWorker(concurrent.Worker):
             self.info('\tRe-aligning {} sequences to V-ties, Mutations={}, '
                       'Length={}'.format(
                             len(vdjs), round(avg_mut, 2), round(avg_len, 2)))
-            add_uniques(self._session, sample, vdjs.values(), avg_len, avg_mut,
+            add_uniques(self._session, sample, list(vdjs.values()), avg_len, avg_mut,
                         self._min_similarity, self._max_vties, self._trim_to,
                         self._max_padding)
 

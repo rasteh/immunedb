@@ -43,7 +43,7 @@ def _collapse_seqs(session, sample, reader, columns):
                     '{}_DUP_{}'.format(columns.seq_id, dup)
                 )
 
-    return seqs.values()
+    return list(seqs.values())
 
 
 def read_file(session, handle, sample, v_germlines, j_germlines, columns,
@@ -68,7 +68,7 @@ def read_file(session, handle, sample, v_germlines, j_germlines, columns,
         if remaps is not None:
             remapped_j_genes = set([])
             for j in orig_j_genes:
-                for remap_from, remap_to in remaps.iteritems():
+                for remap_from, remap_to in remaps.items():
                     if j.startswith(remap_from):
                         remapped_j_genes.add(remap_to)
                         break
@@ -76,8 +76,8 @@ def read_file(session, handle, sample, v_germlines, j_germlines, columns,
                     remapped_j_genes.add(j)
             orig_j_genes = remapped_j_genes
 
-        v_genes = filter(lambda v: v in v_germlines, orig_v_genes)
-        j_genes = filter(lambda j: j in j_germlines, orig_j_genes)
+        v_genes = [v for v in orig_v_genes if v in v_germlines]
+        j_genes = [j for j in orig_j_genes if j in j_germlines]
 
         vdj = VDJSequence(
             seq['seq_ids'], seq['record'][columns.full_sequence], v_germlines,
@@ -106,20 +106,20 @@ def read_file(session, handle, sample, v_germlines, j_germlines, columns,
     logger.info('Collapsing ambiguous character sequences')
     if len(aligned_seqs) > 0:
         avg_mut = sum(
-            [v.mutation_fraction for v in aligned_seqs.values()]
+            [v.mutation_fraction for v in list(aligned_seqs.values())]
         ) / float(len(aligned_seqs))
         avg_len = sum(
-            [v.v_length for v in aligned_seqs.values()]
+            [v.v_length for v in list(aligned_seqs.values())]
         ) / float(len(aligned_seqs))
         sample.v_ties_mutations = avg_mut
         sample.v_ties_len = avg_len
         if columns.ties:
-            add_uniques(session, sample, aligned_seqs.values(),
+            add_uniques(session, sample, list(aligned_seqs.values()),
                         realign_mut=avg_mut, realign_len=avg_len,
                         trim_to=columns.trim_to,
                         max_padding=columns.max_padding)
         else:
-            add_uniques(session, sample, aligned_seqs.values())
+            add_uniques(session, sample, list(aligned_seqs.values()))
     session.commit()
 
 

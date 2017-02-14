@@ -16,8 +16,8 @@ class VGene(object):
             raise AlignmentException('Cannot have gaps after CDR3 start '
                                      '(position {})'.format(CDR3_OFFSET))
         try:
-            self._ungapped_anchor_pos = find_v_position(
-                self.sequence_ungapped).next()
+            self._ungapped_anchor_pos = next(find_v_position(
+                self.sequence_ungapped))
         except StopIteration:
             raise AlignmentException('Unable to find anchor')
 
@@ -130,7 +130,7 @@ class VGermlines(GeneTies):
                     continue
 
         super(VGermlines, self).__init__(
-            {k: v for k, v in self.iteritems()},
+            {k: v for k, v in self.items()},
             ties_prob_threshold=ties_prob_threshold
         )
 

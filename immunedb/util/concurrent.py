@@ -1,6 +1,6 @@
 import multiprocessing as mp
 import traceback
-import Queue
+import queue
 
 import logging
 from immunedb.util.log import logger
@@ -63,7 +63,7 @@ class TaskQueue(object):
             try:
                 try:
                     args = self._task_queue.get()
-                except Queue.Empty:
+                except queue.Empty:
                     break
                 if args is None:
                     self._task_queue.task_done()

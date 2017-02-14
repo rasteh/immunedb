@@ -100,12 +100,12 @@ def _make_input_file(session, input_path, clone, samples, min_mut_count,
             for seq in seqs:
                 removes.update({
                     (i, seq.sequence[i]): 1 for i in
-                    map(int, json.loads(seq.mutations_from_clone).keys())
+                    map(int, list(json.loads(seq.mutations_from_clone).keys()))
                 })
 
             # Filter out the mutations
             removes = [
-                mut for mut, cnt in removes.iteritems()
+                mut for mut, cnt in removes.items()
                 if cnt < min_mut_count or cnt > max_mut_count
             ]
 
@@ -130,10 +130,10 @@ def _parse_output(session, clone, fh):
         if row['Type'] == 'Sequence':
             del row['Type']
             del row['ID']
-            row = {k: v.strip() for k, v in row.iteritems()}
+            row = {k: v.strip() for k, v in row.items()}
             row = {
                 k: v.strip() if v == 'NA' else float(v.strip()) for k, v in
-                row.iteritems()
+                row.items()
             }
             return row
 
@@ -168,12 +168,11 @@ class SelectionPressureWorker(concurrent.Worker):
                 return
 
         self.info('Clone {}'.format(clone_id))
-        sample_ids = map(lambda c: c.sample_id, self._session.query(
+        sample_ids = [c.sample_id for c in self._session.query(
                 CloneStats.sample_id
             ).filter(
                 CloneStats.clone_id == clone_id
-            )
-        )
+            )]
 
         for sample_id in sample_ids:
             self._process_sample(clone_id, sample_id,
@@ -255,10 +254,10 @@ def run_selection_pressure(session, args):
     if args.clone_ids is not None:
         clones = args.clone_ids
     elif args.subject_ids is not None:
-        clones = map(lambda c: c.id, session.query(Clone.id).filter(
-            Clone.subject_id.in_(args.subject_ids)).all())
+        clones = [c.id for c in session.query(Clone.id).filter(
+            Clone.subject_id.in_(args.subject_ids)).all()]
     else:
-        clones = map(lambda c: c.id, session.query(Clone.id).all())
+        clones = [c.id for c in session.query(Clone.id).all()]
     clones.sort()
 
     tasks = concurrent.TaskQueue()

@@ -45,7 +45,7 @@ class CollapseWorker(concurrent.Worker):
             larger = to_process.pop(0)
             # Iterate over all smaller sequences to find matches
             instances = 1
-            for i in reversed(range(0, len(to_process))):
+            for i in reversed(list(range(0, len(to_process)))):
                 smaller = to_process[i]
                 if len(larger['sequence']) != len(smaller['sequence']):
                     self.warning('Tried to collapse sequences of different '
@@ -97,9 +97,7 @@ def run_collapse(session, args):
                      info=vars(args))
     subject_ids = []
 
-    for subject in (args.subject_ids or map(
-                lambda e: e.id, session.query(Subject.id).all()
-                )):
+    for subject in (args.subject_ids or [e.id for e in session.query(Subject.id).all()]):
         if session.query(Sample).filter(
                 Sample.subject_id == subject,
                 ~exists().where(

@@ -52,12 +52,9 @@ class CloneExport(Exporter):
     def get_data(self):
         csv = NestedCSVWriter(self.selected_fields, streaming=True)
         if self.rtype == 'sample':
-            clone_ids = map(
-                lambda e: e.clone_id,
-                self.session.query(CloneStats.clone_id).filter(
+            clone_ids = [e.clone_id for e in self.session.query(CloneStats.clone_id).filter(
                     CloneStats.sample_id.in_(self.rids)
-                ).all()
-            )
+                ).all()]
         else:
             clone_ids = self.rids
 

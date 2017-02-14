@@ -1,6 +1,6 @@
 import datetime
 
-from sqlalchemy import (Column, Boolean, Float, Integer, String, Date,
+from sqlalchemy import (Column, Boolean, Float, Integer, Unicode, Date,
                         DateTime, ForeignKey, UniqueConstraint, Index, event)
 from sqlalchemy.dialects.mysql import MEDIUMTEXT
 from sqlalchemy.ext.declarative import declarative_base
@@ -21,7 +21,7 @@ CDR3_OFFSET = 309
 def deserialize_gaps(gaps):
     if gaps is None:
         return []
-    return map(lambda e: map(int, e.split('-')), gaps.split(','))
+    return [list(map(int, e.split('-'))) for e in gaps.split(',')]
 
 
 def serialize_gaps(gaps):
@@ -44,8 +44,8 @@ class Study(Base):
     __table_args__ = {'mysql_row_format': 'DYNAMIC'}
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(length=128), unique=True)
-    info = Column(String(length=1024))
+    name = Column(Unicode(length=128), unique=True)
+    info = Column(Unicode(length=1024))
 
 
 class Subject(Base):
@@ -66,7 +66,7 @@ class Subject(Base):
 
     id = Column(Integer, primary_key=True)
 
-    identifier = Column(String(64))
+    identifier = Column(Unicode(64))
     study_id = Column(Integer, ForeignKey(Study.id))
     study = relationship(Study, backref=backref('subjects',
                          order_by=identifier))
@@ -109,8 +109,8 @@ class Sample(Base):
     __table_args__ = {'mysql_row_format': 'DYNAMIC'}
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(128), unique=True)
-    info = Column(String(1024))
+    name = Column(Unicode(128), unique=True)
+    info = Column(Unicode(1024))
 
     date = Column(Date, nullable=False)
 
@@ -122,16 +122,16 @@ class Sample(Base):
     subject = relationship(Subject, backref=backref('samples',
                            order_by=(id)))
 
-    subset = Column(String(128))
-    tissue = Column(String(16))
-    ig_class = Column(String(8))
+    subset = Column(Unicode(128))
+    tissue = Column(Unicode(16))
+    ig_class = Column(Unicode(8))
 
-    disease = Column(String(32))
-    lab = Column(String(128))
-    experimenter = Column(String(128))
+    disease = Column(Unicode(32))
+    lab = Column(Unicode(128))
+    experimenter = Column(Unicode(128))
 
-    v_primer = Column(String(32))
-    j_primer = Column(String(32))
+    v_primer = Column(Unicode(32))
+    j_primer = Column(Unicode(32))
 
     v_ties_mutations = Column(Float)
     v_ties_len = Column(Float)
@@ -180,7 +180,7 @@ class SampleStats(Base):
     sample = relationship(Sample, backref=backref('sample_stats',
                           order_by=sample_id))
 
-    filter_type = Column(String(length=255), primary_key=True)
+    filter_type = Column(Unicode(length=255), primary_key=True)
     outliers = Column(Boolean, primary_key=True)
     full_reads = Column(Boolean, primary_key=True)
 
@@ -236,21 +236,21 @@ class Clone(Base):
 
     functional = Column(Boolean, index=True)
 
-    v_gene = Column(String(length=512), index=True)
-    j_gene = Column(String(length=128), index=True)
+    v_gene = Column(Unicode(length=512), index=True)
+    j_gene = Column(Unicode(length=128), index=True)
 
-    _insertions = Column('insertions', String(128), index=True)
-    _deletions = Column('deletions', String(128), index=True)
+    _insertions = Column('insertions', Unicode(128), index=True)
+    _deletions = Column('deletions', Unicode(128), index=True)
 
-    cdr3_nt = Column(String(length=MAX_CDR3_NTS))
+    cdr3_nt = Column(Unicode(length=MAX_CDR3_NTS))
     cdr3_num_nts = Column(Integer, index=True)
-    cdr3_aa = Column(String(length=MAX_CDR3_AAS))
+    cdr3_aa = Column(Unicode(length=MAX_CDR3_AAS))
 
     subject_id = Column(Integer, ForeignKey(Subject.id), index=True)
     subject = relationship(Subject, backref=backref('clones',
                            order_by=(v_gene, j_gene, cdr3_num_nts, cdr3_aa)))
 
-    germline = Column(String(length=MAX_SEQ_LEN))
+    germline = Column(Unicode(length=MAX_SEQ_LEN))
     tree = Column(MEDIUMTEXT)
 
     overall_unique_cnt = Column(Integer, index=True)  # Denormalized
@@ -459,7 +459,7 @@ class Sequence(Base):
     subject_id = Column(Integer, ForeignKey(Subject.id), index=True)
     subject = relationship(Subject)
 
-    seq_id = Column(String(64), index=True)
+    seq_id = Column(Unicode(64), index=True)
     sample = relationship(Sample, backref=backref('sequences'))
 
     partial = Column(Boolean, index=True)
@@ -467,11 +467,11 @@ class Sequence(Base):
     probable_indel_or_misalign = Column(Boolean)
     locally_aligned = Column(Boolean, default=False, nullable=False)
 
-    _deletions = Column('deletions', String(32))
-    _insertions = Column('insertions', String(32))
+    _deletions = Column('deletions', Unicode(32))
+    _insertions = Column('insertions', Unicode(32))
 
-    v_gene = Column(String(256))
-    j_gene = Column(String(256))
+    v_gene = Column(Unicode(256))
+    j_gene = Column(Unicode(256))
 
     num_gaps = Column(Integer)
     pad_length = Column(Integer)
@@ -481,8 +481,8 @@ class Sequence(Base):
     j_match = Column(Integer)
     j_length = Column(Integer)
 
-    removed_prefix = Column(String(256))
-    removed_prefix_qual = Column(String(256))
+    removed_prefix = Column(Unicode(256))
+    removed_prefix_qual = Column(Unicode(256))
     v_mutation_fraction = Column(Float)
 
     pre_cdr3_length = Column(Integer)
@@ -500,13 +500,13 @@ class Sequence(Base):
     # generation over the index
     cdr3_num_nts = Column(Integer)
 
-    cdr3_nt = Column(String(MAX_CDR3_NTS))
-    cdr3_aa = Column(String(MAX_CDR3_AAS))
+    cdr3_nt = Column(Unicode(MAX_CDR3_NTS))
+    cdr3_aa = Column(Unicode(MAX_CDR3_AAS))
 
-    sequence = Column(String(length=MAX_SEQ_LEN))
-    quality = Column(String(length=MAX_SEQ_LEN))
+    sequence = Column(Unicode(length=MAX_SEQ_LEN))
+    quality = Column(Unicode(length=MAX_SEQ_LEN))
 
-    germline = Column(String(length=MAX_SEQ_LEN))
+    germline = Column(Unicode(length=MAX_SEQ_LEN))
 
     clone_id = Column(Integer, ForeignKey(Clone.id, ondelete='SET NULL'),
                       index=True)
@@ -625,7 +625,7 @@ class DuplicateSequence(Base):
 
     pk = Column(Integer, primary_key=True)
 
-    seq_id = Column(String(length=64))
+    seq_id = Column(Unicode(length=64))
 
     duplicate_seq_ai = Column(Integer, index=True)
     duplicate_seq = relationship(Sequence)
@@ -654,17 +654,17 @@ class NoResult(Base):
 
     pk = Column(Integer, primary_key=True)
 
-    seq_id = Column(String(length=64))
+    seq_id = Column(Unicode(length=64))
 
     sample_id = Column(Integer, ForeignKey(Sample.id))
     sample = relationship(Sample)
 
     # Allow longer sequences here since they aren't aligned and we don't know
     # the length.
-    sequence = Column(String(length=MAX_SEQ_LEN * 2))
-    quality = Column(String(length=MAX_SEQ_LEN * 2))
+    sequence = Column(Unicode(length=MAX_SEQ_LEN * 2))
+    quality = Column(Unicode(length=MAX_SEQ_LEN * 2))
 
-    reason = Column(String(256))
+    reason = Column(Unicode(256))
 
 
 class ModificationLog(Base):
@@ -682,8 +682,8 @@ class ModificationLog(Base):
     id = Column(Integer, primary_key=True)
     datetime = Column(DateTime, default=datetime.datetime.utcnow)
 
-    action_type = Column(String(length=128))
-    info = Column(String(length=1024))
+    action_type = Column(Unicode(length=128))
+    info = Column(Unicode(length=1024))
 
 
 class SequenceCollapse(Base):
@@ -726,7 +726,7 @@ class SequenceCollapse(Base):
 
     collapse_to_subject_sample_id = Column(Integer)
     collapse_to_subject_seq_ai = Column(Integer, index=True)
-    collapse_to_subject_seq_id = Column(String(64))  # Denormalized
+    collapse_to_subject_seq_id = Column(Unicode(64))  # Denormalized
     instances_in_subject = Column(Integer, server_default='0', nullable=False)
     copy_number_in_subject = Column(Integer, server_default='0',
                                     nullable=False, index=True)
@@ -751,7 +751,7 @@ def check_string_length(cls, key, inst):
     if isinstance(prop, ColumnProperty) and len(prop.columns) == 1:
         col = prop.columns[0]
         # if we have string column with a length, install a length validator
-        if isinstance(col.type, String) and col.type.length:
+        if isinstance(col.type, Unicode) and col.type.length:
             max_length = col.type.length
 
             def set_(instance, value, oldvalue, initiator):

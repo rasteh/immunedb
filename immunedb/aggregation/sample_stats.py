@@ -8,6 +8,7 @@ import immunedb.common.config as config
 import immunedb.common.modification_log as mod_log
 from immunedb.common.models import (Clone, NoResult, Sample, SampleStats,
                                     Sequence)
+from immunedb.util.funcs import int_cast
 import immunedb.util.concurrent as concurrent
 import immunedb.util.lookups as lookups
 from immunedb.util.log import logger
@@ -163,7 +164,7 @@ class SampleStatsWorker(concurrent.Worker):
 
     def _add_stat(self, stats, sample_id, include_outliers,
                   only_full_reads):
-        for name, stat in stats.iteritems():
+        for name, stat in stats.items():
             ss = SampleStats(
                 sample_id=sample_id,
                 filter_type=name,
@@ -186,15 +187,15 @@ class SampleStatsWorker(concurrent.Worker):
             else:
                 ss.quality_dist = json.dumps([])
 
-            for dname, dist in stat.distributions.iteritems():
+            for dname, dist in stat.distributions.items():
                 setattr(ss, '{}_dist'.format(dname),
-                        json.dumps([(k, v) for k, v in dist.iteritems()]))
+                        json.dumps([(k, v) for k, v in dist.items()]))
             self._session.add(ss)
 
     def _calculate_seq_stats(self, sample_id, min_cdr3, max_cdr3,
                              include_outliers, only_full_reads):
         seq_statistics = {}
-        for name, stat in _seq_contexts.iteritems():
+        for name, stat in _seq_contexts.items():
             seq_statistics[name] = SeqContextStats(self._session, **stat)
 
         # TODO: This should be automatically generated from _dist_fields
@@ -226,7 +227,7 @@ class SampleStatsWorker(concurrent.Worker):
             query = query.filter(Sequence.partial == 0)
 
         for seq in query:
-            for stat in seq_statistics.values():
+            for stat in list(seq_statistics.values()):
                 stat.add_if_match(seq)
 
         self._add_stat(seq_statistics, sample_id, include_outliers,
@@ -235,24 +236,25 @@ class SampleStatsWorker(concurrent.Worker):
     def _calculate_clone_stats(self, sample_id, min_cdr3, max_cdr3,
                                include_outliers, only_full_reads):
         clone_statistics = {}
-        for name, stat in _clone_contexts.iteritems():
+        for name, stat in _clone_contexts.items():
             clone_statistics[name] = CloneContextStats(seqs=None, **stat)
 
         # TODO: This should be automatically generated from _dist_fields
         query = self._session.query(
             Sequence.clone_id,
-            func.round(func.avg(Sequence.v_match)).label('v_match'),
-            func.round(func.avg(Sequence.j_match)).label('j_match'),
-            func.round(func.avg(Sequence.j_length)).label('j_length'),
+            int_cast(func.round(func.avg(Sequence.v_match))).label('v_match'),
+            int_cast(func.round(func.avg(Sequence.j_match))).label('j_match'),
+            int_cast(
+                func.round(func.avg(Sequence.j_length))).label('j_length'),
             Sequence.v_gene,
             Sequence.j_gene,
             func.count(Sequence.seq_id).label('copy_number'),
-            func.round(
+            int_cast(func.round(
                 func.avg(Sequence.v_length + Sequence.num_gaps)
-            ).label('v_length'),
-            func.round(
+            )).label('v_length'),
+            int_cast(func.round(
                 func.avg(100 * Sequence.v_match / Sequence.v_length)
-            ).label('v_identity'),
+            )).label('v_identity'),
             Sequence.cdr3_num_nts.label('cdr3_length')
         ).filter(
             Sequence.sample_id == sample_id,
@@ -269,7 +271,7 @@ class SampleStatsWorker(concurrent.Worker):
             in_frame = len(clone_info.cdr3_nt) % 3 == 0
             stop = '*' in lookups.aas_from_nts(clone_info.cdr3_nt)
             functional = in_frame and not stop
-            for name, stat in clone_statistics.iteritems():
+            for name, stat in clone_statistics.items():
                 stat.add_if_match(clone, in_frame, stop, functional)
 
         self._add_stat(clone_statistics, sample_id, include_outliers,
@@ -281,7 +283,7 @@ def _get_cdr3_bounds(session, sample_id):
     cdr3s = []
 
     query = session.query(
-        func.sum(Sequence.copy_number).label('copy_number'),
+        int_cast(func.sum(Sequence.copy_number)).label('copy_number'),
         cdr3_fld.label('cdr3_len')
     ).filter(
         Sequence.sample_id == sample_id,
@@ -346,7 +348,7 @@ def run_sample_stats(session, args):
                      info=vars(args))
 
     if args.sample_ids is None:
-        samples = map(lambda s: s.id, session.query(Sample.id).all())
+        samples = [s.id for s in session.query(Sample.id).all()]
     else:
         samples = args.sample_ids
 

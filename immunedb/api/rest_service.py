@@ -80,10 +80,10 @@ def create_response(j=None, code=200, ctype='application/json'):
 
 def get_paging():
     data = bottle.request.json or {}
-    return map(int, (
+    return list(map(int, (
         data.get('page', 1),
         data.get('per_page', 10)
-    ))
+    )))
 
 
 def decode_run_length(encoding):
@@ -92,7 +92,7 @@ def decode_run_length(encoding):
     for match in re.finditer('(T|F)(\d+)', encoding.upper()):
         size = int(match.group(2))
         if match.group(1) == 'T':
-            ids.extend(range(offset, offset + size))
+            ids.extend(list(range(offset, offset + size)))
         offset += size
     return ids
 
@@ -326,7 +326,7 @@ def export_mutations(session, from_type, encoding):
         ).filter(
             CloneStats.sample_id.in_(decode_run_length(encoding))
         )
-        clone_ids = map(lambda r: r.clone_id, query.all())
+        clone_ids = [r.clone_id for r in query.all()]
     else:
         clone_ids = [int(encoding)]
 

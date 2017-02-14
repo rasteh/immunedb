@@ -11,6 +11,7 @@ from sqlalchemy.sql.expression import false, true
 from immunedb.common.models import (Clone, CloneStats, Sample, SampleStats,
                                     Sequence, SequenceCollapse, Subject)
 from immunedb.common.mutations import threshold_mutations
+from immunedb.util.funcs import int_cast
 
 
 _clone_filters = {
@@ -112,7 +113,7 @@ def get_clones(session, filters, order_field, order_dir, subject_limit=None,
         clone_q = clone_q.filter(Clone.subject_id == subject_limit)
 
     if filters is not None:
-        for key, value in filters.iteritems():
+        for key, value in filters.items():
             if value is None:
                 continue
             value = str(value).strip()
@@ -284,13 +285,8 @@ def get_clone_sequences(session, clone_id, get_collapse, paging):
                 })
 
     return sorted(
-        sequences.values(),
-        cmp=lambda a, b: cmp(
-            a['copy_number_in_subject'],
-            b['copy_number_in_subject']
-            ),
-        reverse=True
-    )
+        list(sequences.values()),
+        key=lambda s: s['copy_number_in_subject'], reverse=True)
 
 
 def get_selection_pressure(session, clone_id):
@@ -360,10 +356,7 @@ def get_clone_overlap(session, sample_ids, filter_type, paging=None,
                 if c.functional == (filter_type == 'clones_functional') and
                 c.clone_id in clones_present
             ]
-        clones = sorted(
-            clones,
-            cmp=lambda a, b: cmp(b.unique_cnt, a.unique_cnt)
-        )
+        clones = sorted(clones, key=lambda c: c.unique_cnt, reverse=True)
         if len(query_cache) >= max_cache_size:
             query_cache.pop(last=False)
         query_cache[key] = clones
@@ -413,15 +406,14 @@ def get_clone_overlap(session, sample_ids, filter_type, paging=None,
 
 
 def get_clones_in_samples(session, samples):
-    return map(lambda e: e.id,
-               session.query(
+    return [e.id for e in session.query(
                    distinct(Sequence.clone_id).label('id')).filter(
-                   Sequence.sample_id.in_(samples)))
+                   Sequence.sample_id.in_(samples))]
 
 
 def get_clones_in_subject(session, subject_id):
-    return map(lambda e: e.id, session.query(Clone).filter(
-        Clone.subject_id == subject_id))
+    return [e.id for e in session.query(Clone).filter(
+        Clone.subject_id == subject_id)]
 
 
 def get_v_usage(session, samples, filter_type, include_outliers,
@@ -464,9 +456,9 @@ def get_v_usage(session, samples, filter_type, include_outliers,
             data[group_key][name] += occ
 
     headers = []
-    for group_key, names in data.iteritems():
+    for group_key, names in data.items():
         totals[group_key] = float(sum(names.values()))
-        for name, value in names.iteritems():
+        for name, value in names.items():
             percent = round(100 * value / totals[group_key], 2)
             names[name] = percent
             if name not in headers and percent >= 1.0:
@@ -480,7 +472,7 @@ def get_all_subjects(session, paging=None):
     for subject in _page_query(
             session.query(Subject).order_by(Subject.identifier), paging):
         seqs = session.query(
-            func.sum(SampleStats.sequence_cnt)
+            int_cast(func.sum(SampleStats.sequence_cnt))
         ).filter(
             SampleStats.sample.has(subject=subject),
             SampleStats.filter_type == 'all',
@@ -516,8 +508,8 @@ def get_subject(session, sid):
     s = session.query(Subject).filter(Subject.id == sid).first()
     samples = get_samples(
         session,
-        map(lambda e: e.id, session.query(Sample.id).filter(
-            Sample.subject_id == sid)))
+        [e.id for e in session.query(Sample.id).filter(
+            Sample.subject_id == sid)])
 
     subject = {
         'id': s.id,
@@ -606,7 +598,7 @@ def analyze_samples(session, samples, filter_type, include_outliers,
 
             fields = _fields_to_dict(dist_fields, stat)
 
-            for field, values in fields.iteritems():
+            for field, values in fields.items():
                 if field not in stats[group_key]:
                     stats[group_key][field] = {}
 
@@ -615,11 +607,11 @@ def analyze_samples(session, samples, filter_type, include_outliers,
                         stats[group_key][field][x] = 0
                     stats[group_key][field][x] += freq
 
-    for group, key_dict in stats.iteritems():
-        for key, vals in key_dict.iteritems():
+    for group, key_dict in stats.items():
+        for key, vals in key_dict.items():
             if key == 'quality_dist':
                 vals = {k: v / float(group_sizes[group])
-                        for k, v in vals.iteritems()}
+                        for k, v in vals.items()}
             reduced = []
             for x in sorted(vals.keys()):
                 val = vals[x]
@@ -695,7 +687,7 @@ def get_sequences(session, filters, order_field, order_dir, subject_id=None,
         else:
             copy_number_field = SequenceCollapse.copy_number_in_subject
 
-        for key, value in filters.iteritems():
+        for key, value in filters.items():
             if value in [None, True, False]:
                 continue
             value = str(value).strip()

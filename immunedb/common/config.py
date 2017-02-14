@@ -45,7 +45,7 @@ def init_db(database_config, drop_all=False, as_maker=False):
 
     """
 
-    if isinstance(database_config, basestring):
+    if isinstance(database_config, str):
         with open(database_config) as fh:
             database_config = json.load(fh)
 

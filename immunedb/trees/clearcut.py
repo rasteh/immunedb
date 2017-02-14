@@ -86,8 +86,8 @@ class ClearcutWorker(concurrent.Worker):
                 )
 
             mutations = _get_mutations(
-                germline_seq, seq.clone_sequence, map(
-                    int, json.loads(seq.mutations_from_clone).keys())
+                germline_seq, seq.clone_sequence, list(map(
+                    int, list(json.loads(seq.mutations_from_clone).keys())))
             )
             for mut in mutations:
                 if mut not in mut_counts:
@@ -96,16 +96,16 @@ class ClearcutWorker(concurrent.Worker):
                 mut_counts[mut]['samples'].add(seq.sample_id)
 
         remove_muts = set([])
-        for mut, cnts in mut_counts.iteritems():
+        for mut, cnts in mut_counts.items():
             if (cnts['count'] < self._min_count or
                     len(cnts['samples']) < self._min_samples):
                 remove_muts.add(mut)
 
-        for seq_id, seq in seqs.iteritems():
+        for seq_id, seq in seqs.items():
             seqs[seq_id] = _remove_muts(seq, remove_muts, germline_seq)
 
         in_data = '>germline\n{}\n'.format(germline_seq)
-        for seq_id, seq in seqs.iteritems():
+        for seq_id, seq in seqs.items():
             in_data += '>{}\n{}\n'.format(seq_id, seq)
         return in_data, remove_muts
 
@@ -130,13 +130,13 @@ class ClearcutWorker(concurrent.Worker):
                 node.name = seq.seq_id
                 node.add_feature('seq_ids', seq_ids)
                 node.add_feature('copy_number', sum(
-                    [s['copy_number'] for s in seq_ids.values()]
+                    [s['copy_number'] for s in list(seq_ids.values())]
                 ))
                 modified_seq = _remove_muts(seq.sequence, remove_muts,
                                             germline_seq)
                 node.add_feature('mutations', _get_mutations(
                     germline_seq, modified_seq,
-                    map(int, json.loads(seq.mutations_from_clone).keys())))
+                    list(map(int, list(json.loads(seq.mutations_from_clone).keys())))))
             else:
                 node = _instantiate_node(node)
 
@@ -183,7 +183,7 @@ def _instantiate_node(node):
 
 def _get_nested(seqs, key):
     ret = set([])
-    for s in seqs.values():
+    for s in list(seqs.values()):
         ret.add(s.get(key, set([])))
     return sorted(list(ret))
 

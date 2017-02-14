@@ -1,4 +1,5 @@
 import dnautils
+import functools
 import itertools
 import traceback
 
@@ -135,12 +136,14 @@ def add_uniques(session, sample, vdjs, realign_len=None,
                          '{}\n\t{}'.format(vdj.ids[0], traceback.format_exc()))
 
     # Collapse sequences that are the same except for Ns
-    for sequences in funcs.periodic_commit(session, bucketed_seqs.values()):
-        sequences = sorted(sequences.values(), cmp=lambda a, b:
-                           cmp(len(a.ids), len(b.ids)))
+    comp_func = functools.cmp_to_key(
+        lambda a, b: (len(a.ids) > len(b.ids)) - (len(a.ids) < len(b.ids)))
+    for sequences in funcs.periodic_commit(session,
+                                           list(bucketed_seqs.values())):
+        sequences = sorted(list(sequences.values()), key=comp_func)
         while len(sequences) > 0:
             larger = sequences.pop(0)
-            for i in reversed(range(len(sequences))):
+            for i in reversed(list(range(len(sequences)))):
                 smaller = sequences[i]
 
                 if dnautils.equal(larger.sequence, smaller.sequence):
@@ -160,9 +163,9 @@ class GeneTies(dict):
         self.update(genes)
 
         self.allele_lookup = {}
-        for name in self.keys():
+        for name in list(self.keys()):
             self.allele_lookup[name] = set([])
-            for name2 in self.keys():
+            for name2 in list(self.keys()):
                 if name2.split('*')[0] == name.split('*')[0]:
                     self.allele_lookup[name].add(name2)
 
@@ -198,7 +201,7 @@ class GeneTies(dict):
             )
             self.ties[key][gene] = set([gene])
 
-            for name, v in self.iteritems():
+            for name, v in self.items():
                 s_2 = v.replace('-', '') if self.remove_gaps else v
                 K = dnautils.hamming(s_1[-length:], s_2[-length:])
                 p = self._hypergeom(length, mutation, K)
@@ -232,8 +235,8 @@ def get_common_seq(seqs, cutoff=True):
     if len(seqs) == 0:
         return seqs[0]
     v_gene = []
-    for nts in itertools.izip_longest(*seqs, fillvalue='N'):
-        v_gene.append(nts[0] if all(map(lambda n: n == nts[0], nts)) else 'N')
+    for nts in itertools.zip_longest(*seqs, fillvalue='N'):
+        v_gene.append(nts[0] if all([n == nts[0] for n in nts]) else 'N')
     v_gene = ''.join(v_gene)
     if cutoff:
         return v_gene[:CDR3_OFFSET]

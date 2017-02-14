@@ -8,6 +8,7 @@ from immunedb.common.models import (Clone, CloneStats, Sequence,
 import immunedb.common.modification_log as mod_log
 from immunedb.common.mutations import CloneMutations
 import immunedb.util.concurrent as concurrent
+from immunedb.util.funcs import int_cast
 from immunedb.util.log import logger
 
 
@@ -35,12 +36,11 @@ class CloneStatsWorker(concurrent.Worker):
             return
 
         self.info('Clone {}'.format(clone_id))
-        sample_ids = map(lambda c: c.sample_id, self._session.query(
+        sample_ids = [c.sample_id for c in self._session.query(
                 distinct(Sequence.sample_id).label('sample_id')
             ).filter(
                 Sequence.clone_id == clone_id
-            )
-        )
+            )]
         sample_ids.append(None)
         for sample_id in sample_ids:
             self._process_sample(clone_id, sample_id)
@@ -58,8 +58,9 @@ class CloneStatsWorker(concurrent.Worker):
         if sample_id is None:
             counts = self._session.query(
                 func.count(Sequence.ai).label('unique'),
-                func.sum(SequenceCollapse.copy_number_in_subject).label(
-                    'total')
+                int_cast(
+                    func.sum(SequenceCollapse.copy_number_in_subject)).label(
+                        'total')
             ).join(SequenceCollapse).filter(
                 Sequence.clone_id == clone_id,
                 SequenceCollapse.copy_number_in_subject > 0
@@ -67,7 +68,7 @@ class CloneStatsWorker(concurrent.Worker):
         else:
             counts = self._session.query(
                 func.count(Sequence.ai).label('unique'),
-                func.sum(Sequence.copy_number).label('total')
+                int_cast(func.sum(Sequence.copy_number)).label('total')
             ).filter(
                 Sequence.sample_id == sample_id,
                 Sequence.clone_id == clone_id
@@ -117,10 +118,10 @@ def run_clone_stats(session, args):
     if args.clone_ids is not None:
         clones = args.clone_ids
     elif args.subject_ids is not None:
-        clones = map(lambda c: c.id, session.query(Clone.id).filter(
-            Clone.subject_id.in_(args.subject_ids)).all())
+        clones = [c.id for c in session.query(Clone.id).filter(
+            Clone.subject_id.in_(args.subject_ids)).all()]
     else:
-        clones = map(lambda c: c.id, session.query(Clone.id).all())
+        clones = [c.id for c in session.query(Clone.id).all()]
     clones.sort()
 
     if args.regen:

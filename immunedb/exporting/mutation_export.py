@@ -35,7 +35,7 @@ class MutationExporter(object):
             self._session, cid, self._thresh_type,
             self._thresh_value, sample_id=sample_id)
 
-        for region, stats in result['regions'].iteritems():
+        for region, stats in result['regions'].items():
             row = {
                 'clone_id': cid,
                 'region': region,
@@ -44,7 +44,7 @@ class MutationExporter(object):
             }
 
             for number in self._numbers:
-                for mtype, count in stats['counts'][number].iteritems():
+                for mtype, count in stats['counts'][number].items():
                     row['{}_{}'.format(mtype, number)] = count
             self._csv.add_row(row, write_default=True, default=0,
                               write_if_stream=False)
@@ -58,10 +58,10 @@ class MutationExporter(object):
             if self._limit_sample_ids is not None:
                 sample_ids = self._limit_sample_ids
             else:
-                sample_ids = map(lambda r: r.sample_id, self._session.query(
+                sample_ids = [r.sample_id for r in self._session.query(
                     CloneStats.sample_id).filter(
                         CloneStats.clone_id == cid,
-                        CloneStats.sample_id != 0).all())
+                        CloneStats.sample_id != 0).all()]
             for sample_id in sample_ids:
                 self._sample_rows(cid, sample_id)
                 yield self._csv.get_value()

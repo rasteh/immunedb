@@ -45,7 +45,7 @@ class LocalAlignmentWorker(concurrent.Worker):
 
         self.first_alleles = {
             name: v.sequence
-            for name, v in self.v_germlines.alignments.iteritems()
+            for name, v in self.v_germlines.alignments.items()
             if int(name.split('*', 1)[1]) == 1
         }
 
@@ -71,7 +71,7 @@ class LocalAlignmentWorker(concurrent.Worker):
         v_ties = {
             '|'.join(name): v for name, v in self.v_germlines.all_ties(
                 args['avg_len'], args['avg_mut'], cutoff=False
-            ).iteritems() if v_name in '|'.join(name)
+            ).items() if v_name in '|'.join(name)
         }
 
         v_align = self.align_seq_to_germs(
@@ -222,7 +222,7 @@ class LocalAlignmentWorker(concurrent.Worker):
 
     def align_seq_to_germs(self, seq, germs):
         stdin = []
-        for g_name, g_seq in germs.iteritems():
+        for g_name, g_seq in germs.items():
             stdin.append('>{}\n{}\n'.format(g_name, g_seq.replace('-', '')))
             stdin.append('>query\n{}\n'.format(seq.lstrip('N')))
 
@@ -232,7 +232,8 @@ class LocalAlignmentWorker(concurrent.Worker):
             '--freeendgap --file -'
         ).format(self.align_path)
         proc = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE, stdin=subprocess.PIPE)
+                                stderr=subprocess.PIPE, stdin=subprocess.PIPE,
+                                bufsize=1, universal_newlines=True)
         output, err = proc.communicate(''.join(stdin))
         regex = (
             r'(?P<germ_name>.+)\n'
@@ -284,7 +285,7 @@ def process_completes(session, complete_queue, num_workers):
                     Sequence.sample_id == task['record']['sample_id'],
                     Sequence.seq_id == task['record']['seq_id']
                 ).one()
-                for key, value in task['record'].iteritems():
+                for key, value in task['record'].items():
                     setattr(seq, key, value)
             else:
                 new_seq = Sequence(**task['record'])
@@ -400,9 +401,9 @@ def run_fix_sequences(session, args):
             uniques[seq.sequence]['seq_ids'].append(seq.seq_id)
 
         tasks = concurrent.TaskQueue()
-        tasks.add_tasks(uniques.values())
+        tasks.add_tasks(list(uniques.values()))
 
-        workers = min(args.nproc, tasks.num_tasks)
+        workers = min(args.nproc, tasks.num_tasks())
         complete_queue = mp.Queue()
 
         for i in range(0, workers):

@@ -1,3 +1,7 @@
+from sqlalchemy.sql.expression import cast
+from sqlalchemy.types import Float, Integer
+
+
 def get_regions(insertions):
     regions = [78, 36, 51, 30, 114]
     offset = 0
@@ -30,7 +34,7 @@ def get_pos_region(regions, cdr3_len, pos):
 def ord_to_quality(quality):
     if quality is None:
         return None
-    return ''.join(map(lambda q: ' ' if q is None else chr(q + 33), quality))
+    return ''.join([' ' if q is None else chr(q + 33) for q in quality])
 
 
 def periodic_commit(session, query, interval=100):
@@ -77,3 +81,7 @@ def format_ties(ties, name, strip_alleles=False):
     if strip_alleles:
         ties = [e.split('*', 1)[0] for e in ties]
     return '{}{}'.format(name, '|'.join(sorted(set(ties))))
+
+
+def int_cast(agg):
+    return cast(agg, Integer)
