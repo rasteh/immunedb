@@ -1,6 +1,6 @@
 import os
 
-from regression import BaseTest, NamespaceMimic
+from .regression import BaseTest, NamespaceMimic
 
 from immunedb.importing.delimited import DEFAULT_MAPPINGS, run_import
 
@@ -36,7 +36,7 @@ class TestImport(BaseTest.RegressionTest):
             trim_to=None,
             max_padding=None
         )
-        for k, v in DEFAULT_MAPPINGS.iteritems():
+        for k, v in DEFAULT_MAPPINGS.items():
             setattr(ns, k, v)
 
         run_import(self.session, ns)

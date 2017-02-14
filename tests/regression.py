@@ -37,7 +37,7 @@ class BaseTest(object):
             return '-'.join([str(getattr(obj, k)) for k in key])
 
         def generate(self, path, query, key, fields):
-            print 'Generating regression for {}'.format(path)
+            print('Generating regression for {}'.format(path))
             data = {}
             for record in query:
                 data[self.get_key(record, key)] = {
@@ -50,7 +50,7 @@ class BaseTest(object):
         def regression(self, path, query, key, fields):
             if os.getenv('GENERATE'):
                 self.generate(path, query, key, fields)
-            print 'Regression testing {}'.format(path)
+            print('Regression testing {}'.format(path))
             with open(path) as fh:
                 checks = json.load(fh)
             agg_keys = set([])
@@ -59,7 +59,7 @@ class BaseTest(object):
                 agg_keys.add(agg_key)
                 self.assertIn(agg_key, checks, '{} is in result but not in '
                               'checks for {}'.format(agg_key, path))
-                for fld, value in checks[agg_key].iteritems():
+                for fld, value in checks[agg_key].items():
                     self.assertEqual(
                         getattr(record, fld),
                         value,
@@ -68,11 +68,11 @@ class BaseTest(object):
                     )
             check_keys = set(checks.keys())
             if check_keys != agg_keys:
-                print 'Keys differ:'
-                print '\tIn checks but not result: {}'.format(
-                    check_keys - agg_keys)
-                print '\tIn result but not checks: {}'.format(
-                    agg_keys - check_keys)
+                print('Keys differ:')
+                print('\tIn checks but not result: {}'.format(
+                    check_keys - agg_keys))
+                print('\tIn result but not checks: {}'.format(
+                    agg_keys - check_keys))
                 self.assertEqual(check_keys, set(agg_keys))
 
 
@@ -258,5 +258,5 @@ class NamespaceMimic(object):
     def __init__(self, **kwargs):
         self.nproc = 1
         self.db_config = CONFIG_PATH
-        for k, v in kwargs.iteritems():
+        for k, v in kwargs.items():
             setattr(self, k, v)
