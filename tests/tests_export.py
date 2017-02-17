@@ -12,10 +12,6 @@ def request(endpoint, data={}):
 
 
 class ExportTest(unittest.TestCase):
-    @classmethod
-    def tearDownClass(cls):
-        request('/shutdown')
-
     def check(self, expected_path, url, data={}):
         path = 'tests/data/export/' + expected_path
         response = request(url, data).text
@@ -24,7 +20,13 @@ class ExportTest(unittest.TestCase):
                 fh.write(response)
         else:
             with open(path) as fh:
-                assert fh.read() == response
+                expected = fh.read()
+                if expected != response:
+                    with open('expected.log', 'w+') as fh:
+                        fh.write(expected)
+                    with open('response.log', 'w+') as fh:
+                        fh.write(response)
+                assert expected == response
 
     def test_sequences(self):
         for ext in ('fasta', 'fastq', 'clip'):

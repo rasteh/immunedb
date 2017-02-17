@@ -80,7 +80,8 @@ def consensus(strings):
     :rtype: str
 
     """
-    chrs = [Counter(chars).most_common(1)[0][0] for chars in zip(*strings)]
+    chrs = [sorted(Counter(chars).most_common(), key=lambda k: k[::-1])[0][0]
+            for chars in zip(*strings)]
     return ''.join(chrs)
 
 
@@ -169,7 +170,7 @@ class ClonalWorker(concurrent.Worker):
 
     def tcell_clones(self, bucket):
         updates = []
-        clones = {}
+        clones = OrderedDict()
         consensus_needed = set([])
 
         for seq in self.get_query(bucket, False):
@@ -180,8 +181,7 @@ class ClonalWorker(concurrent.Worker):
                 for test_clone in list(clones.values()):
                     same_bin = (test_clone.v_gene == key[0] and
                                 test_clone.j_gene == key[1] and
-                                test_clone.cdr3_num_nts == len(key[2])
-                    )
+                                test_clone.cdr3_num_nts == len(key[2]))
                     if same_bin and dnautils.equal(test_clone.cdr3_nt, key[2]):
                         clone = test_clone
                         break
@@ -357,9 +357,9 @@ def run_clones(session, args):
         )
         for bucket in buckets:
             tasks.add_task({
-            'tcells': args.tcells,
-            'bucket': bucket
-        })
+                'tcells': args.tcells,
+                'bucket': bucket
+            })
 
     logger.info('Generated {} total tasks'.format(tasks.num_tasks()))
 

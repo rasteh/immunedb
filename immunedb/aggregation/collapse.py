@@ -97,7 +97,8 @@ def run_collapse(session, args):
                      info=vars(args))
     subject_ids = []
 
-    for subject in (args.subject_ids or [e.id for e in session.query(Subject.id).all()]):
+    ids = (args.subject_ids or [e.id for e in session.query(Subject.id).all()])
+    for subject in ids:
         if session.query(Sample).filter(
                 Sample.subject_id == subject,
                 ~exists().where(

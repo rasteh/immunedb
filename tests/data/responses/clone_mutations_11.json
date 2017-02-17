@@ -38,18 +38,21 @@
         },
         "308": {
             "synonymous": 1
+        },
+        "40": {
+            "conservative": 1
         }
     },
     "regions": {
         "ALL": {
             "counts": {
                 "total": {
-                    "conservative": 6,
+                    "conservative": 7,
                     "nonconservative": 2,
                     "synonymous": 5
                 },
                 "unique": {
-                    "conservative": 6,
+                    "conservative": 7,
                     "nonconservative": 2,
                     "synonymous": 5
                 }
@@ -57,24 +60,24 @@
             "mutations": {
                 "conservative": [
                     {
-                        "from_aa": "L",
-                        "from_nt": "C",
-                        "intermediate_aa": "F",
-                        "pos": 210,
+                        "from_aa": "K",
+                        "from_nt": "A",
+                        "intermediate_aa": "R",
+                        "pos": 40,
                         "to_aas": [
-                            "F"
+                            "R"
                         ],
-                        "to_nt": "T",
+                        "to_nt": "G",
                         "total": 3,
                         "unique": 1
                     },
                     {
-                        "from_aa": "A",
+                        "from_aa": "S",
                         "from_nt": "G",
-                        "intermediate_aa": "P",
-                        "pos": 171,
+                        "intermediate_aa": "T",
+                        "pos": 106,
                         "to_aas": [
-                            "P"
+                            "T"
                         ],
                         "to_nt": "C",
                         "total": 3,
@@ -93,14 +96,26 @@
                         "unique": 1
                     },
                     {
-                        "from_aa": "S",
+                        "from_aa": "A",
                         "from_nt": "G",
-                        "intermediate_aa": "T",
-                        "pos": 106,
+                        "intermediate_aa": "P",
+                        "pos": 171,
                         "to_aas": [
-                            "T"
+                            "P"
                         ],
                         "to_nt": "C",
+                        "total": 3,
+                        "unique": 1
+                    },
+                    {
+                        "from_aa": "L",
+                        "from_nt": "C",
+                        "intermediate_aa": "F",
+                        "pos": 210,
+                        "to_aas": [
+                            "F"
+                        ],
+                        "to_nt": "T",
                         "total": 3,
                         "unique": 1
                     },
@@ -136,7 +151,7 @@
                         "intermediate_aa": "N",
                         "pos": 118,
                         "to_aas": [
-                            "N"
+                            null
                         ],
                         "to_nt": "A",
                         "total": 3,
@@ -169,30 +184,6 @@
                         "unique": 1
                     },
                     {
-                        "from_aa": "Y",
-                        "from_nt": "C",
-                        "intermediate_aa": "Y",
-                        "pos": 308,
-                        "to_aas": [
-                            "F"
-                        ],
-                        "to_nt": "T",
-                        "total": 3,
-                        "unique": 1
-                    },
-                    {
-                        "from_aa": "V",
-                        "from_nt": "G",
-                        "intermediate_aa": "V",
-                        "pos": 302,
-                        "to_aas": [
-                            "V"
-                        ],
-                        "to_nt": "T",
-                        "total": 3,
-                        "unique": 1
-                    },
-                    {
                         "from_aa": "T",
                         "from_nt": "A",
                         "intermediate_aa": "T",
@@ -213,6 +204,30 @@
                             "T"
                         ],
                         "to_nt": "C",
+                        "total": 3,
+                        "unique": 1
+                    },
+                    {
+                        "from_aa": "V",
+                        "from_nt": "G",
+                        "intermediate_aa": "V",
+                        "pos": 302,
+                        "to_aas": [
+                            "V"
+                        ],
+                        "to_nt": "T",
+                        "total": 3,
+                        "unique": 1
+                    },
+                    {
+                        "from_aa": "Y",
+                        "from_nt": "C",
+                        "intermediate_aa": "Y",
+                        "pos": 308,
+                        "to_aas": [
+                            "F"
+                        ],
+                        "to_nt": "T",
                         "total": 3,
                         "unique": 1
                     }
@@ -259,24 +274,24 @@
             "mutations": {
                 "conservative": [
                     {
-                        "from_aa": "A",
-                        "from_nt": "G",
-                        "intermediate_aa": "P",
-                        "pos": 171,
-                        "to_aas": [
-                            "P"
-                        ],
-                        "to_nt": "C",
-                        "total": 3,
-                        "unique": 1
-                    },
-                    {
                         "from_aa": "S",
                         "from_nt": "G",
                         "intermediate_aa": "T",
                         "pos": 169,
                         "to_aas": [
                             "T"
+                        ],
+                        "to_nt": "C",
+                        "total": 3,
+                        "unique": 1
+                    },
+                    {
+                        "from_aa": "A",
+                        "from_nt": "G",
+                        "intermediate_aa": "P",
+                        "pos": 171,
+                        "to_aas": [
+                            "P"
                         ],
                         "to_nt": "C",
                         "total": 3,
@@ -302,13 +317,29 @@
         "FW1": {
             "counts": {
                 "total": {
+                    "conservative": 1,
                     "synonymous": 1
                 },
                 "unique": {
+                    "conservative": 1,
                     "synonymous": 1
                 }
             },
             "mutations": {
+                "conservative": [
+                    {
+                        "from_aa": "K",
+                        "from_nt": "A",
+                        "intermediate_aa": "R",
+                        "pos": 40,
+                        "to_aas": [
+                            "R"
+                        ],
+                        "to_nt": "G",
+                        "total": 3,
+                        "unique": 1
+                    }
+                ],
                 "synonymous": [
                     {
                         "from_aa": "G",
@@ -342,7 +373,7 @@
                         "intermediate_aa": "N",
                         "pos": 118,
                         "to_aas": [
-                            "N"
+                            null
                         ],
                         "to_nt": "A",
                         "total": 3,
@@ -379,18 +410,6 @@
                         "unique": 1
                     },
                     {
-                        "from_aa": "S",
-                        "from_nt": "A",
-                        "intermediate_aa": "G",
-                        "pos": 276,
-                        "to_aas": [
-                            "G"
-                        ],
-                        "to_nt": "G",
-                        "total": 3,
-                        "unique": 1
-                    },
-                    {
                         "from_aa": "M",
                         "from_nt": "A",
                         "intermediate_aa": "L",
@@ -399,6 +418,18 @@
                             "L"
                         ],
                         "to_nt": "C",
+                        "total": 3,
+                        "unique": 1
+                    },
+                    {
+                        "from_aa": "S",
+                        "from_nt": "A",
+                        "intermediate_aa": "G",
+                        "pos": 276,
+                        "to_aas": [
+                            "G"
+                        ],
+                        "to_nt": "G",
                         "total": 3,
                         "unique": 1
                     }
@@ -419,14 +450,14 @@
                 ],
                 "synonymous": [
                     {
-                        "from_aa": "Y",
-                        "from_nt": "C",
-                        "intermediate_aa": "Y",
-                        "pos": 308,
+                        "from_aa": "T",
+                        "from_nt": "A",
+                        "intermediate_aa": "T",
+                        "pos": 239,
                         "to_aas": [
-                            "F"
+                            "T"
                         ],
-                        "to_nt": "T",
+                        "to_nt": "C",
                         "total": 3,
                         "unique": 1
                     },
@@ -443,14 +474,14 @@
                         "unique": 1
                     },
                     {
-                        "from_aa": "T",
-                        "from_nt": "A",
-                        "intermediate_aa": "T",
-                        "pos": 239,
+                        "from_aa": "Y",
+                        "from_nt": "C",
+                        "intermediate_aa": "Y",
+                        "pos": 308,
                         "to_aas": [
-                            "T"
+                            "F"
                         ],
-                        "to_nt": "C",
+                        "to_nt": "T",
                         "total": 3,
                         "unique": 1
                     }

@@ -1,4 +1,4 @@
-import io as StringIO
+import io
 import csv
 
 
@@ -7,7 +7,7 @@ class NestedCSVWriter(object):
         self._headers = headers
         self._mapping = mapping
         self._streaming = streaming
-        self._out = StringIO.StringIO()
+        self._out = io.StringIO(newline=None)
         self._csv = csv.DictWriter(self._out, fieldnames=headers)
         self._csv.writeheader()
 

@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import itertools
 import multiprocessing as mp
 import re
@@ -222,7 +223,7 @@ class LocalAlignmentWorker(concurrent.Worker):
 
     def align_seq_to_germs(self, seq, germs):
         stdin = []
-        for g_name, g_seq in germs.items():
+        for g_name, g_seq in sorted(germs.items()):
             stdin.append('>{}\n{}\n'.format(g_name, g_seq.replace('-', '')))
             stdin.append('>query\n{}\n'.format(seq.lstrip('N')))
 
@@ -323,7 +324,7 @@ def remove_duplicates(session, sample_id):
     ).filter(
         Sequence.locally_aligned.is_(True),
         Sequence.sample_id == sample_id
-    )
+    ).order_by(Sequence.ai)
 
     for seq in seqs:
         potential_collapse = session.query(
@@ -333,7 +334,7 @@ def remove_duplicates(session, sample_id):
             Sequence.v_gene == seq.v_gene,
             Sequence.j_gene == seq.j_gene,
             Sequence.cdr3_num_nts == seq.cdr3_num_nts,
-        ).order_by(desc(Sequence.copy_number))
+        ).order_by(desc(Sequence.copy_number), Sequence.ai)
 
         for other_seq in potential_collapse:
             if (other_seq.ai == seq.ai or
@@ -369,11 +370,11 @@ def run_fix_sequences(session, args):
         indels = session.query(Sequence).filter(
             Sequence.sample_id == sample_id,
             Sequence.probable_indel_or_misalign == 1
-        )
+        ).order_by(Sequence.ai)
         # Get the sequences that were not identifiable
         noresults = session.query(NoResult).filter(
             NoResult.sample_id == sample_id
-        )
+        ).order_by(NoResult.sample_id, NoResult.seq_id)
         logger.info('Creating task queue for sample {}; '
                     '{} indels, {} noresults'.format(
                         sample_id, indels.count(), noresults.count()))
@@ -385,7 +386,7 @@ def run_fix_sequences(session, args):
         ).filter(Sample.id == sample_id).one()
 
         # Get all the unique sequences
-        uniques = {}
+        uniques = OrderedDict()
         for seq in itertools.chain(indels, noresults):
             session.expunge(seq)
             if seq.sequence not in uniques:

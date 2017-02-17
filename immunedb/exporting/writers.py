@@ -50,7 +50,8 @@ class FASTAWriter(SequenceWriter):
         return ''.join([
             metadata['seq_id'],
             '|' if len(fields) > 0 else '',
-            '|'.join(['{}={}'.format(k_v[0], k_v[1]) for k_v in iter(fields.items())])
+            '|'.join(['{}={}'.format(k, fields[k]) for k in
+                      sorted(fields.keys())])
         ])
 
 

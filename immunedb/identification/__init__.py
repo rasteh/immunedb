@@ -1,5 +1,5 @@
+from collections import OrderedDict
 import dnautils
-import functools
 import itertools
 import traceback
 
@@ -98,7 +98,8 @@ def add_as_sequence(session, vdj, sample):
 def add_uniques(session, sample, vdjs, realign_len=None,
                 realign_mut=None, min_similarity=0, max_vties=50,
                 trim_to=None, max_padding=None):
-    bucketed_seqs = {}
+    bucketed_seqs = OrderedDict()
+    vdjs = sorted(vdjs, key=lambda v: v.ids[0])
     for vdj in funcs.periodic_commit(session, vdjs):
         try:
             if realign_len is not None:
@@ -136,14 +137,16 @@ def add_uniques(session, sample, vdjs, realign_len=None,
                          '{}\n\t{}'.format(vdj.ids[0], traceback.format_exc()))
 
     # Collapse sequences that are the same except for Ns
-    comp_func = functools.cmp_to_key(
-        lambda a, b: (len(a.ids) > len(b.ids)) - (len(a.ids) < len(b.ids)))
-    for sequences in funcs.periodic_commit(session,
-                                           list(bucketed_seqs.values())):
-        sequences = sorted(list(sequences.values()), key=comp_func)
+    for bucket, sequences in funcs.periodic_commit(
+            session, bucketed_seqs.items()):
+        sequences = sorted(
+            sequences.values(),
+            key=lambda s: (len(s.ids), s.ids[0]),
+            reverse=True
+        )
         while len(sequences) > 0:
             larger = sequences.pop(0)
-            for i in reversed(list(range(len(sequences)))):
+            for i in reversed(range(len(sequences))):
                 smaller = sequences[i]
 
                 if dnautils.equal(larger.sequence, smaller.sequence):
@@ -186,6 +189,8 @@ class GeneTies(dict):
         return ties
 
     def get_single_tie(self, gene, length, mutation):
+        length = int(length)
+        mutation = round(mutation, 3)
         mutation = self.mut_bucket(mutation)
         key = (length, mutation)
 
@@ -201,7 +206,7 @@ class GeneTies(dict):
             )
             self.ties[key][gene] = set([gene])
 
-            for name, v in self.items():
+            for name, v in sorted(self.items()):
                 s_2 = v.replace('-', '') if self.remove_gaps else v
                 K = dnautils.hamming(s_1[-length:], s_2[-length:])
                 p = self._hypergeom(length, mutation, K)

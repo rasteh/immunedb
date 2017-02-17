@@ -342,14 +342,6 @@ def export_mutations(session, from_type, encoding):
         yield line
 
 
-@app.route('/shutdown', method=['POST'])
-def shutdown():
-    if app.config['allow_shutdown']:
-        logger.warning('Shutting down from remote request')
-        sys.exit()
-    return create_response(code=404)
-
-
 def run_rest_service(session_maker, args):
     if args.rollbar_token:
         if not ROLLBAR_SUPPORT:
@@ -361,7 +353,6 @@ def run_rest_service(session_maker, args):
         bottle.install(rbr)
 
     app.config['session_maker'] = session_maker
-    app.config['allow_shutdown'] = args.allow_shutdown
     if args.debug:
         app.catchall = False
     app.run(host='0.0.0.0', port=args.port, server='gevent', debug=args.debug)

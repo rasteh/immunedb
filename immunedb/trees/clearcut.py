@@ -136,7 +136,8 @@ class ClearcutWorker(concurrent.Worker):
                                             germline_seq)
                 node.add_feature('mutations', _get_mutations(
                     germline_seq, modified_seq,
-                    list(map(int, list(json.loads(seq.mutations_from_clone).keys())))))
+                    int(m) for m in json.loads(seq.mutations_from_clone).keys()
+                ))
             else:
                 node = _instantiate_node(node)
 

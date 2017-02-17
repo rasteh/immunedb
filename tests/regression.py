@@ -13,7 +13,7 @@ from immunedb.aggregation.clone_stats import run_clone_stats
 from immunedb.aggregation.sample_stats import run_sample_stats
 
 
-DB_NAME = 'test_db'
+DB_NAME = 'test_db3'
 CONFIG_PATH = '{}.json'.format(DB_NAME)
 
 
@@ -74,7 +74,6 @@ class BaseTest(object):
                 print('\tIn result but not checks: {}'.format(
                     agg_keys - check_keys))
                 self.assertEqual(check_keys, set(agg_keys))
-
 
     class RegressionTest(BaseRegression):
         def __init__(self, name, *args, **kwargs):
