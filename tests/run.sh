@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 set -e
 function setup() {
-    immunedb_admin create test_db3 . --admin-pass "$DB_ADMIN_PASS"
+    immunedb_admin create test_db . --admin-pass "$DB_ADMIN_PASS"
 }
 
 function teardown() {
     trap '' INT TERM
     kill -9 $REST_PID
-    immunedb_admin delete test_db3.json --delete-user --admin-pass "$DB_ADMIN_PASS"
-    rm test_db3.json
+    immunedb_admin delete test_db.json --delete-user --admin-pass "$DB_ADMIN_PASS"
+    rm test_db.json
 }
 
 if [ -z "$LL_PATH" ]

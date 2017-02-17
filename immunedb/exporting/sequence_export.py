@@ -114,7 +114,7 @@ class SequenceExport(Exporter):
             getattr(
                 Sequence, '{}_id'.format(self.rtype)
             ) == rid
-        ) for rid in self.rids]
+        ) for rid in sorted(self.rids)]
         for query in queries:
             query = query.join(SequenceCollapse)
             if self.subject_uniques:
@@ -123,7 +123,6 @@ class SequenceExport(Exporter):
                 )
             if self.only_with_clones:
                 query = query.filter(~Sequence.clone_id.is_(None))
-            query = query.order_by(Sequence.sample_id, Sequence.seq_id)
 
             query = self.writer.preprocess_query(query)
             self.selected_fields = self.writer.get_required_fields(

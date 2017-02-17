@@ -13,7 +13,7 @@ from immunedb.aggregation.clone_stats import run_clone_stats
 from immunedb.aggregation.sample_stats import run_sample_stats
 
 
-DB_NAME = 'test_db3'
+DB_NAME = 'test_db'
 CONFIG_PATH = '{}.json'.format(DB_NAME)
 
 
